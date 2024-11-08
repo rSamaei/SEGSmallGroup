@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 
-from tutorials.models import User
+from tutorials.models import User, Subject, RequestSession, Match, TutorSubject
 
 import pytz
 from faker import Faker
@@ -12,6 +12,10 @@ user_fixtures = [
     {'username': '@charlie', 'email': 'charlie.johnson@example.org', 'first_name': 'Charlie', 'last_name': 'Johnson'},
 ]
 
+subject_names = [
+    'Mathematics', 'Physics', 'Chemistry', 'Biology', 'English', 
+    'History', 'Computer Science', 'Art', 'Music', 'Physical Education'
+]
 
 class Command(BaseCommand):
     """Build automation command to seed the database."""
@@ -26,6 +30,10 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.create_users()
         self.users = User.objects.all()
+        # self.create_subjects()
+        # self.create_request_sessions()
+        # self.create_tutor_subjects()
+        # self.create_matches()
 
     def create_users(self):
         self.generate_user_fixtures()
@@ -37,7 +45,7 @@ class Command(BaseCommand):
 
     def generate_random_users(self):
         user_count = User.objects.count()
-        while  user_count < self.USER_COUNT:
+        while user_count < self.USER_COUNT:
             print(f"Seeding user {user_count}/{self.USER_COUNT}", end='\r')
             self.generate_user()
             user_count = User.objects.count()
@@ -65,8 +73,58 @@ class Command(BaseCommand):
             last_name=data['last_name'],
         )
 
+    # def create_subjects(self):
+    #     for name in subject_names:
+    #         Subject.objects.get_or_create(name=name)
+    #     print("Subjects seeded.")
+
+    # def create_request_sessions(self):
+    #     students = User.objects.filter(user_type='student')
+    #     subjects = Subject.objects.all()
+
+    #     for student in students:
+    #         for _ in range(randint(1, 3)):  # Each student can request between 1 to 3 sessions
+    #             subject = choice(subjects)
+    #             proficiency = choice(['Beginner', 'Intermediate', 'Advanced'])
+    #             frequency = randint(1, 5)
+
+    #             RequestSession.objects.get_or_create(
+    #                 student=student,
+    #                 subject=subject,
+    #                 defaults={'proficiency': proficiency, 'frequency': frequency}
+    #             )
+    #     print("Request sessions seeded.")
+
+    # def create_tutor_subjects(self):
+    #     tutors = User.objects.filter(user_type='tutor')
+    #     subjects = Subject.objects.all()
+
+    #     for tutor in tutors:
+    #         for _ in range(randint(1, 5)):  # Each tutor can teach between 1 to 5 subjects
+    #             subject = choice(subjects)
+    #             proficiency_level = choice(['Intermediate', 'Advanced', 'Expert'])
+
+    #             TutorSubject.objects.get_or_create(
+    #                 tutor=tutor,
+    #                 subject=subject,
+    #                 defaults={'proficiency_level': proficiency_level}
+    #             )
+    #     print("Tutor subjects seeded.")
+
+    # def create_matches(self):
+    #     sessions = RequestSession.objects.all()
+    #     tutors = User.objects.filter(user_type='tutor')
+
+    #     for session in sessions:
+    #         tutor = choice(tutors)
+    #         Match.objects.get_or_create(
+    #             request_session=session,
+    #             tutor=tutor
+    #         )
+    #     print("Matches seeded.")
+
 def create_username(first_name, last_name):
     return '@' + first_name.lower() + last_name.lower()
 
 def create_email(first_name, last_name):
-    return first_name + '.' + last_name + '@example.org'
+    return f"{first_name.lower()}.{last_name.lower()}@example.org"
