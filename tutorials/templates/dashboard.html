@@ -5,6 +5,29 @@
     <div class="col-12">
       <h1>Welcome to your dashboard {{ user.username }}</h1>
     </div>
+    <div>
+       <table class="table table-bordered table-dark">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="col">Subject</th>
+            <th scope="col">Proficiency</th>
+            <th scope="col">Frequency</th>
+            <th scope="col">Date</th>
+          </tr>
+        </thead>
+      {% for request in requests %}
+      <tr>
+        <td>{{request.subject}}</td>
+        <td>{{request.prof}}</td>
+        <td>{{request.freq}}</td>
+        <td>{{request.date}}</td>
+      </tr>
+        {% endfor %}
+        
+    </table> 
+    <p>{{message}}</p>
+    </div>
+
   </div>
 </div>
 {% endblock %}
