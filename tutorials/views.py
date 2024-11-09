@@ -10,7 +10,6 @@ from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
 from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm
 from tutorials.helpers import login_prohibited
-from tutorials.models import RequestSession
 
 
 @login_required
@@ -18,16 +17,7 @@ def dashboard(request):
     """Display the current user's dashboard."""
 
     current_user = request.user
-    list = []
-    for e in RequestSession.objects.all():
-        if e.student == current_user:
-            tempDict = {'subject':e.subject.name,'prof':e.proficiency,'freq':e.frequency,'date':e.date_requested.strftime('%d/%m/%Y')}
-            list.append(tempDict)
-    noRequestMessage = ''
-    if len(list) == 0:
-        noRequestMessage = 'No requests were found'
-
-    return render(request, 'dashboard.html', {'user': current_user, 'requests':list, 'message':noRequestMessage})
+    return render(request, 'dashboard.html', {'user': current_user})
 
 
 @login_prohibited
