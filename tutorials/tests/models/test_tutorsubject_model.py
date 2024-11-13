@@ -23,14 +23,14 @@ class TutorSubjectModelTestCase(TestCase):
         self.tutor_subject = TutorSubject.objects.create(
             tutor=self.tutor,
             subject=self.subject,
-            proficiency_level = "Advanced"
+            proficiency = "Advanced"
         )
 
     def test_tutor_subject_creation(self):
         """Test that a TutorSubject instance is created correctly."""
         self.assertEqual(self.tutor_subject.tutor, self.tutor)
         self.assertEqual(self.tutor_subject.subject, self.subject)
-        self.assertEqual(self.tutor_subject.proficiency_level, "Advanced")
+        self.assertEqual(self.tutor_subject.proficiency, "Advanced")
 
     def test_tutor_subject_str(self):
         """Test the string representation."""
@@ -45,5 +45,9 @@ class TutorSubjectModelTestCase(TestCase):
         )
         with self.assertRaises(ValidationError):
             duplicate.full_clean()
-
     
+    def test_invalid_proficiency(self):
+        """Test that an invalid proficiency level raises a validation error."""
+        with self.assertRaises(ValidationError):
+            self.tutor_subject.proficiency = "Expert"
+            self.tutor_subject.full_clean()

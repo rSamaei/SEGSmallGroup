@@ -106,12 +106,12 @@ class Command(BaseCommand):
         for tutor in tutors:    # similarly for every tutor in the database create data for them
             for _ in range(randint(1, 5)):  # fill the database with each tutor being able to teach 1-5 subjects
                 subject = choice(subjects)
-                proficiency_level = choice(['Intermediate', 'Advanced', 'Expert'])
+                proficiency = choice(['Beginner', 'Intermediate', 'Advanced'])
                 # if the tutor teaching that subject hasn't already been generated create it 
                 TutorSubject.objects.get_or_create(
                     tutor=tutor,
                     subject=subject,
-                    defaults={'proficiency_level': proficiency_level}
+                    defaults={'proficiency': proficiency}
                 )
         print("Tutor subjects seeded.")
 

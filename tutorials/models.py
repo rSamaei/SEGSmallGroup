@@ -57,16 +57,22 @@ class Subject(models.Model):
         return self.name
     
 class RequestSession(models.Model):
-    """Model for a session request made by a student, composite key made by combining the student and the subject they want"""
+    """Model for a session request made by a student"""
 
-    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='requests')    # related_name let's you access all requests made by a student by doing (student).requests.all()
+    PROFICIENCY_TYPES = (
+        ('Beginner', 'Beginner'),
+        ('Intermediate', 'Intermediate'),
+        ('Advanced', 'Advanced'),
+    )
+
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='requests')
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
-    frequency = models.PositiveIntegerField()
-    proficiency = models.CharField(max_length=50)
+    frequency = models.PositiveIntegerField(default=1)  # Added default=1 for once per week
+    proficiency = models.CharField(max_length=12, choices=PROFICIENCY_TYPES, default='Beginner')
     date_requested = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('student', 'subject')  # Django doesnt support composite key so this makes it so that each entry has to be unique student for a subject
+        unique_together = ('student', 'subject')
 
     def __str__(self):
         return f"{self.student.username} - {self.subject.name}"
@@ -83,9 +89,15 @@ class Match(models.Model):
 class TutorSubject(models.Model):
     """Model for tutors and their associated subjects"""
     
+    PROFICIENCY_TYPES = (
+        ('Beginner', 'Beginner'),
+        ('Intermediate', 'Intermediate'),
+        ('Advanced', 'Advanced'),
+    )
+
     tutor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tutor_subjects')
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
-    proficiency_level = models.CharField(max_length=50)
+    proficiency = models.CharField(max_length=12, choices=PROFICIENCY_TYPES, default='Beginner')
 
     class Meta:
         unique_together = ('tutor', 'subject')
