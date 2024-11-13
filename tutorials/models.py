@@ -80,7 +80,7 @@ class RequestSession(models.Model):
 class Match(models.Model):
     """Model for matching requests to tutors"""
 
-    request_session = models.ForeignKey(RequestSession, on_delete=models.CASCADE)
+    request_session = models.OneToOneField(RequestSession, on_delete=models.CASCADE)
     tutor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='matches')
 
     def __str__(self):
