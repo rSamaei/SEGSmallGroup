@@ -1,5 +1,6 @@
 """Unit tests for the TutorSubject model."""
 from django.test import TestCase
+from django.core.exceptions import ValidationError
 from tutorials.models import User, Subject, TutorSubject
 
 class TutorSubjectModelTestCase(TestCase):

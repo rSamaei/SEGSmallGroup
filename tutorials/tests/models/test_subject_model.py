@@ -14,7 +14,7 @@ class SubjectModelTestCase(TestCase):  # Fixed class name
         self.subject = Subject.objects.get(name='Mathematics')
 
     def test_subject_name_must_be_unique(self):
-        subject = Subject(name='Math')  
+        subject = Subject(name='Mathematics')  
         with self.assertRaises(ValidationError):
             subject.full_clean()
     
@@ -30,8 +30,8 @@ class SubjectModelTestCase(TestCase):  # Fixed class name
         with self.assertRaises(ValidationError):
             self.subject.full_clean()
 
-    def test_subject_name_can_be_50_characters(self):
-        self.subject.name = 'x' * 50
+    def test_subject_name_can_be_20_characters(self):
+        self.subject.name = 'x' * 20
         try:
             self.subject.full_clean()
         except ValidationError:

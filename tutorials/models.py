@@ -51,7 +51,7 @@ class User(AbstractUser):
 class Subject(models.Model):
     """Model used to represent subjects which can be taught"""
 
-    name = models.CharField(max_length=20)
+    name = models.CharField(max_length=20, unique=True)
 
     def __str__(self):
         return self.name
@@ -86,6 +86,9 @@ class TutorSubject(models.Model):
     tutor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tutor_subjects')
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     proficiency_level = models.CharField(max_length=50)
+
+    class Meta:
+        unique_together = ('tutor', 'subject')
 
     def __str__(self):
         return f"{self.tutor.username} - {self.subject.name}"
