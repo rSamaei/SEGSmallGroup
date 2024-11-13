@@ -51,7 +51,7 @@ class User(AbstractUser):
 class Subject(models.Model):
     """Model used to represent subjects which can be taught"""
 
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=20)
 
     def __str__(self):
         return self.name
