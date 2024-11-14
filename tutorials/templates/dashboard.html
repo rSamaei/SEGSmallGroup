@@ -5,6 +5,38 @@
     <div class="col-12">
       <h1>Welcome to your dashboard {{ user.username }}</h1>
     </div>
+    <div>
+      <table class="table table-bordered table-dark">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="col">Student</th>
+            <th scope="col">Tutor</th>
+            <th scope="col">Subject</th>
+            <th scope="col">Student proficiency</th>
+            <th scope="col">Frequency</th>
+            <th scope="col">Date</th>
+          </tr>
+        </thead>
+        {% for request in requests %}
+          <tr>
+            <td>{{ request.student_name }}</td>
+            <td>{{ request.tutor_name }}</td>
+            <td>{{ request.subject }}</td>
+            <td>{{ request.prof }}</td>
+            <td>{{ request.freq }}</td>
+            <td>{{ request.date }}</td>
+          </tr>
+        {% endfor %}
+      </table>
+      <p>{{ message }}</p>
+      
+      {% if user.user_type == 'student' %}
+        <div class="mt-3">
+          <a href="{% url 'add_request' %}" class="btn btn-primary">Add New Request</a>
+        </div>
+      {% endif %}
+      
+    </div>
   </div>
 </div>
 {% endblock %}
