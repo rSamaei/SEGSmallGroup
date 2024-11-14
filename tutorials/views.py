@@ -44,6 +44,10 @@ def dashboard(request):
             'date': e.date_requested.strftime('%d/%m/%Y')
         }
         list.append(tempDict)
+    noRequestMessage = ''
+    if len(list) == 0:
+        noRequestMessage = 'No requests were found'
+    return render(request, 'dashboard.html', {'user': current_user, 'requests': list, 'message': noRequestMessage})
         
 @login_prohibited
 def home(request):
