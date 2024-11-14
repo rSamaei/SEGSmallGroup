@@ -11,6 +11,13 @@ from django.urls import reverse
 from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm
 from tutorials.helpers import login_prohibited
 
+from tutorials.models import RequestSession
+from django.apps import apps
+from .models import RequestSession
+from .forms import RequestSessionForm
+from django.urls import reverse_lazy
+from django.views.generic.edit import CreateView
+
 
 @login_required
 def dashboard(request):
