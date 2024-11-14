@@ -1,0 +1,17 @@
+{% extends 'base_content.html' %}
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-12">
+      <h1>Add New Request</h1>
+    </div>
+    <div>
+      <form method="POST" action="{% url 'add_request' %}">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-success">Submit Request</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
