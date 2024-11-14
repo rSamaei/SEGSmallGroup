@@ -26,6 +26,16 @@ def home(request):
 
     return render(request, 'home.html')
 
+class AddRequestView(LoginRequiredMixin, CreateView):
+    model = RequestSession
+    form_class = RequestSessionForm
+    template_name = 'add_request.html'
+    success_url = reverse_lazy('dashboard')
+
+    def form_valid(self, form):
+        form.instance.student = self.request.user  # Automatically set the current user as the student
+        return super().form_valid(form)
+
 
 class LoginProhibitedMixin:
     """Mixin that redirects when a user is logged in."""
