@@ -4,6 +4,14 @@ from django.contrib.auth import authenticate
 from django.core.validators import RegexValidator
 from .models import User
 
+from .models import RequestSession
+
+class RequestSessionForm(forms.ModelForm):
+    class Meta:
+        model = RequestSession
+        fields = ['subject', 'frequency', 'proficiency']
+
+
 class LogInForm(forms.Form):
     """Form enabling registered users to log in."""
 
