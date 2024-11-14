@@ -18,20 +18,39 @@ from .forms import RequestSessionForm
 from django.urls import reverse_lazy
 from django.views.generic.edit import CreateView
 
-
 @login_required
 def dashboard(request):
-    """Display the current user's dashboard."""
-
+    #Display the current user's dashboard.
     current_user = request.user
-    return render(request, 'dashboard.html', {'user': current_user})
+    list = []
+    
+    if current_user.user_type == 'admin':
+        # Admins can see all requests
+        sessions = RequestSession.objects.all()
+    elif current_user.user_type == 'tutor':
+        # Tutors can see only the requests where they are assigned as the tutor
+        sessions = RequestSession.objects.filter(tutor=current_user)
+    else:
+        # Students can only see their own requests
+        sessions = RequestSession.objects.filter(student=current_user)
 
-
+    for e in sessions:
+        tempDict = {
+            'student_name': e.student.full_name(),
+            'tutor_name': e.tutor.full_name() if e.tutor else 'No tutor assigned',
+            'subject': e.subject.name,
+            'prof': e.proficiency,
+            'freq': e.get_frequency_as_string(),
+            'date': e.date_requested.strftime('%d/%m/%Y')
+        }
+        list.append(tempDict)
+        
 @login_prohibited
 def home(request):
-    """Display the application's start/home screen."""
+    #Display the application's start/home screen.
 
     return render(request, 'home.html')
+
 
 class AddRequestView(LoginRequiredMixin, CreateView):
     model = RequestSession
