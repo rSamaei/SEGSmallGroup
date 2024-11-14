@@ -1,0 +1,13 @@
+[
+    {
+      "model": "tutorials.requestsession",
+      "pk": 1,
+      "fields": {
+        "student": 2,
+        "subject": 1,
+        "frequency": 1,
+        "proficiency": "Intermediate",
+        "date_requested": "2021-01-01T12:00:00Z"
+      }
+    }
+  ]

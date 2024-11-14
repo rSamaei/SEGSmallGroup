@@ -1,0 +1,11 @@
+[
+    {
+      "model": "tutorials.tutorsubject",
+      "pk": 1,
+      "fields": {
+        "tutor": 1,
+        "subject": 1,
+        "proficiency": "Intermediate"
+      }
+    }
+  ]
