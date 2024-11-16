@@ -22,7 +22,7 @@ subject_names = [
 class Command(BaseCommand):
     """Build automation command to seed the database."""
 
-    USER_COUNT = 300
+    USER_COUNT = 600
     DEFAULT_PASSWORD = 'Password123'
     help = 'Seeds the database with sample data'
 
@@ -116,9 +116,11 @@ class Command(BaseCommand):
         print("Tutor subjects seeded.")
 
     def create_matches(self):
-        sessions = RequestSession.objects.all()
+        sessions = list(RequestSession.objects.all())
+        half_sessions = len(sessions) // 2
+        selected_sessions = self.faker.random_elements(elements=sessions, length=half_sessions, unique=True)
 
-        for session in sessions:
+        for session in selected_sessions:
             tutors = User.objects.filter(user_type='tutor')     # get all tutors by filtering users
             tutors_for_subject = tutors.filter(
                 tutor_subjects__subject=session.subject # filter tutors if the subject of the requested session appears in tutor subjects table indicating the tutor can teach that session
