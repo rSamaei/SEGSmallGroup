@@ -25,6 +25,20 @@ class User(AbstractUser):
     email = models.EmailField(unique=True, blank=False)
     user_type = models.CharField(max_length=10, choices=USER_TYPE_CHOICES, default='student')
 
+    @property
+    def is_admin(self) -> bool:
+        """Check if user has admin type."""
+        return self.user_type == 'admin'
+    
+    @property
+    def is_tutor(self) -> bool:
+        """Check if user has tutor type."""
+        return self.user_type == 'tutor' 
+    
+    @property
+    def is_student(self) -> bool:
+        """Check if user has student type."""
+        return self.user_type == 'student'
 
     class Meta:
         """Model options."""
