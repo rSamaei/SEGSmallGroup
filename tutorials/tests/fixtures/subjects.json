@@ -1,0 +1,65 @@
+[
+    {
+      "model": "tutorials.subject",
+      "pk": 1,
+      "fields": {
+        "name": "Mathematics"
+      }
+    },
+    {
+      "model": "tutorials.subject",
+      "pk": 2,
+      "fields": {
+        "name": "Science"
+      }
+    },
+    {
+      "model": "tutorials.subject",
+      "pk": 3,
+      "fields": {
+        "name": "History"
+      }
+    },
+    {
+      "model": "tutorials.subject",
+      "pk": 4,
+      "fields": {
+        "name": "English"
+      }
+    },
+    {
+      "model": "tutorials.subject",
+      "pk": 5,
+      "fields": {
+        "name": "Computer Science"
+      }
+    },
+    {
+      "model": "tutorials.subject",
+      "pk": 6,
+      "fields": {
+        "name": "Art"
+      }
+    },
+    {
+      "model": "tutorials.subject",
+      "pk": 7,
+      "fields": {
+        "name": "Music"
+      }
+    },
+    {
+      "model": "tutorials.subject",
+      "pk": 8,
+      "fields": {
+        "name": "Physical Education"
+      }
+    },
+    {
+      "model": "tutorials.subject",
+      "pk": 9,
+      "fields": {
+        "name": "German"
+      }
+    }
+]
