@@ -43,12 +43,12 @@ class MatchModelTestCase(TestCase):
             tutor=self.tutor
         )
         
-        # Use atomic transaction to rollback after test
+        # atomic transaction used to rollback after test
         with transaction.atomic():
             with self.assertRaises(IntegrityError):
                 duplicate_match.save()
         
-        # Verify only one match exists
+        # verify only one match exists
         self.assertEqual(Match.objects.filter(request_session=self.session).count(), 1)
 
     def test_invalid_tutor_assignment(self):
