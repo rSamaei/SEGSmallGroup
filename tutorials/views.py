@@ -10,23 +10,41 @@ from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
 from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm
 from tutorials.helpers import login_prohibited
-from tutorials.models import RequestSession
+from tutorials.models import RequestSession, User
 
 
 @login_required
 def dashboard(request):
-    """Display the current user's dashboard."""
+    """Display dashboard based on user type."""
     current_user = request.user
-    list = []
-    for e in RequestSession.objects.all():
-        if e.student == current_user:
-            tempDict = {'subject':e.subject.name,'prof':e.proficiency,'freq':e.frequency,'date':e.date_requested.strftime('%d/%m/%Y')}
-            list.append(tempDict)
-    noRequestMessage = ''
-    if len(list) == 0:
-        noRequestMessage = 'No requests were found'
+    context = {'user': current_user}
 
-    return render(request, 'dashboard.html', {'user': current_user, 'requests':list, 'message':noRequestMessage})
+    if (current_user.is_admin):
+        # Get unmatched requests with related data
+        unmatched_requests = RequestSession.objects.filter(
+            match__isnull=True
+        ).select_related('student', 'subject')
+        
+        # Find eligible tutors for each request
+        requests_with_tutors = []
+        for req in unmatched_requests:
+            eligible_tutors = User.objects.filter(
+                user_type='tutor',
+                tutor_subjects__subject=req.subject,
+                tutor_subjects__proficiency=req.proficiency
+            ).distinct()
+            
+            requests_with_tutors.append({
+                'request': req,
+                'eligible_tutors': eligible_tutors
+            })
+            
+        context.update({
+            'requests_with_tutors': requests_with_tutors,
+            'is_admin_view': True
+        })
+
+    return render(request, 'dashboard.html', context)
 
 
 @login_prohibited
