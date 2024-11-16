@@ -1,0 +1,33 @@
+{% extends 'base_content.html' %}
+{% block content %}
+<div class="container overflow-hidden">
+    <div class="row gy-4">  <-- gy-4 will add a margin between the rows, in other more technical terms it creates vertical gutters -->
+        {% for item in requests_with_tutors %}
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Request Details</h5>
+                    <p class="card-text">Student: {{ item.request.student.username }}</p>
+                    <p class="card-text">Subject: {{ item.request.subject.name }}</p>
+                    <p>Proficiency: {{ item.request.proficiency }}</p>
+                    
+                    <form method="post" action="{% url 'create_match' item.request.id %}">
+                        {% csrf_token %}
+                        <select class="form-select mb-3" name="tutor_id">   <-- mb-3 will add a margin below the select box -->
+                            {% for tutor in item.eligible_tutors %}
+                                <option value="{{ tutor.id }}">{{ tutor.username }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary">Create Match</button>
+                            <a href="{% url 'admin_requested_session_highlighted' item.request.id %}" 
+                               class="btn btn-secondary">View Details</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

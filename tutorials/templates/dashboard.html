@@ -7,7 +7,21 @@
     </div>
       {% if is_admin_view %}
           <h2>Admin Dashboard</h2>
-          {% include 'admin_dashboard_content.html' %}
+          <div class="col-md-4">
+              <div class="card mb-3">
+                  <div class="card-body">
+                      <h5 class="card-title">Unmatched Requests</h5>
+                      <p class="card-text">
+                          <span class="h2">{{ unmatched_count }}</span>
+                          <br>
+                          pending requests
+                      </p>
+                      <a href="{% url 'admin_requested_sessions' %}" class="btn btn-primary">
+                          View All Requests
+                      </a>
+                  </div>
+              </div>
+          </div>
       {% else %}
           <h2>User Dashboard</h2>
           <!-- we can do this for tutor and students -->

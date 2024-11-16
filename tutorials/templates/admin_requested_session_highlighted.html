@@ -1,0 +1,67 @@
+{% extends 'base_content.html' %}
+{% block content %}
+<div class="container overflow-hidden">
+    <div class="row">
+        <!-- Left Column: Request Details -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title">Request Details</h3>
+                    <hr>
+                    <p class="card-text"><strong>Student:</strong> {{ request.student.username }}</p>
+                    <p class="card-text"><strong>Subject:</strong> {{ request.subject.name }}</p>
+                    <p class="card-text"><strong>Proficiency:</strong> {{ request.proficiency }}</p>
+                    <p class="card-text"><strong>Frequency:</strong> {{ request.frequency }} times per week</p>
+                    <p class="card-text"><strong>Date Requested:</strong> {{ request.date_requested|date:"F j, Y" }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Tutor Selection -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title">Select Tutor</h3>
+                    <hr>
+                    <form method="get">
+                        <select class="form-select mb-3" name="tutor_id" onchange="this.form.submit()">
+                            <option value="">Choose a tutor...</option>
+                            {% for tutor in eligible_tutors %}
+                                <option value="{{ tutor.id }}" {% if selected_tutor.id == tutor.id %}selected{% endif %}>
+                                    {{ tutor.username }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </form>
+
+                    {% if selected_tutor %}
+                    <div class="card mt-3">
+                        <div class="card-body">
+                            <h4>Tutor Details</h4>
+                            <p><strong>Username:</strong> {{ selected_tutor.username }}</p>
+                            <p><strong>Full Name:</strong> {{ selected_tutor.full_name }}</p>
+                            <p><strong>Email:</strong> {{ selected_tutor.email }}</p>
+                            <p><strong>Subjects:</strong></p>
+                            <ul class="list-group mb-3">
+                                {% for tutor_subject in selected_tutor.tutor_subjects.all %}
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        {{ tutor_subject.subject.name }}
+                                        <span class="badge bg-primary rounded-pill">{{ tutor_subject.proficiency }}</span>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                            
+                            <form method="post" action="{% url 'create_match' request.id %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="tutor_id" value="{{ selected_tutor.id }}">
+                                <button type="submit" class="btn btn-primary">Create Match</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

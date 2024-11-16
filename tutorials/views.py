@@ -10,7 +10,7 @@ from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
 from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm
 from tutorials.helpers import login_prohibited
-from tutorials.models import RequestSession, User
+from tutorials.models import RequestSession, User, Match
 
 
 @login_required
@@ -20,31 +20,89 @@ def dashboard(request):
     context = {'user': current_user}
 
     if (current_user.is_admin):
-        # Get unmatched requests with related data
-        unmatched_requests = RequestSession.objects.filter(
+        # Get count of unmatched requests
+        unmatched_count = RequestSession.objects.filter(
             match__isnull=True
-        ).select_related('student', 'subject')
+        ).count()
         
-        # Find eligible tutors for each request
-        requests_with_tutors = []
-        for req in unmatched_requests:
-            eligible_tutors = User.objects.filter(
-                user_type='tutor',
-                tutor_subjects__subject=req.subject,
-                tutor_subjects__proficiency=req.proficiency
-            ).distinct()
-            
-            requests_with_tutors.append({
-                'request': req,
-                'eligible_tutors': eligible_tutors
-            })
-            
         context.update({
-            'requests_with_tutors': requests_with_tutors,
+            'unmatched_count': unmatched_count,
             'is_admin_view': True
         })
 
     return render(request, 'dashboard.html', context)
+
+@login_required
+def admin_requested_sessions(request):
+    """Display all unmatched requests for admin users."""
+    if not request.user.is_admin:
+        return redirect('dashboard')
+        
+    context = {'user': request.user}
+
+    # Get unmatched requests with related data
+    unmatched_requests = RequestSession.objects.filter(
+        match__isnull=True
+    ).select_related('student', 'subject')
+    
+    # Find eligible tutors for each request
+    requests_with_tutors = []
+    for req in unmatched_requests:
+        eligible_tutors = User.objects.filter(
+            user_type='tutor',
+            tutor_subjects__subject=req.subject,
+            tutor_subjects__proficiency=req.proficiency
+        ).distinct()
+        
+        requests_with_tutors.append({
+            'request': req,
+            'eligible_tutors': eligible_tutors
+        })
+        
+    context.update({
+        'requests_with_tutors': requests_with_tutors,
+        'is_admin_view': True
+    })
+
+    return render(request, 'admin_requested_sessions.html', context)
+
+@login_required
+def admin_requested_session_highlighted(request, request_id):
+    """Display detailed view of a specific request."""
+    session_request = RequestSession.objects.get(id=request_id)
+    eligible_tutors = User.objects.filter(
+        user_type='tutor',
+        tutor_subjects__subject=session_request.subject,
+        tutor_subjects__proficiency=session_request.proficiency
+    ).prefetch_related('tutor_subjects__subject').distinct()
+    
+    selected_tutor = None
+    if 'tutor_id' in request.GET:
+        selected_tutor = eligible_tutors.get(id=request.GET['tutor_id'])
+    
+    return render(request, 'admin_requested_session_highlighted.html', {
+        'request': session_request,
+        'eligible_tutors': eligible_tutors,
+        'selected_tutor': selected_tutor
+    })
+
+@login_required
+def create_match(request, request_id):
+    """Create a match between request and selected tutor."""
+    if not request.user.is_admin:
+        return redirect('dashboard')
+    
+    if request.method == 'POST':
+        session = RequestSession.objects.get(id=request_id)
+        tutor = User.objects.get(id=request.POST['tutor_id'])
+        
+        Match.objects.create(
+            request_session=session,
+            tutor=tutor
+        )
+        messages.success(request, 'Match created successfully')
+        
+    return redirect('dashboard')
 
 
 @login_prohibited
