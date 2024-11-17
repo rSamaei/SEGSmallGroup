@@ -4,12 +4,35 @@ from django.contrib.auth import authenticate
 from django.core.validators import RegexValidator
 from .models import User
 
+from .models import Frequency
 from .models import RequestSession
+
 
 class RequestSessionForm(forms.ModelForm):
     class Meta:
         model = RequestSession
-        fields = ['subject', 'frequency', 'proficiency']
+        fields = ['subject', 'frequency', 'proficiency']  # Include proficiency in the form
+
+    proficiency = forms.ChoiceField(
+        choices=[
+            ('beginner', 'Beginner'),
+            ('intermediate', 'Intermediate'),
+            ('advanced', 'Advanced'),
+        ],
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        required=True,
+    )
+
+    frequency = forms.ChoiceField(
+        choices=Frequency.choices(),  # Dynamically generated choices
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        required=True,
+    )
+
+    def clean_frequency(self):
+        # Clean and convert frequency to float (if needed)
+        frequency = self.cleaned_data.get('frequency')
+        return float(frequency)
 
 
 class LogInForm(forms.Form):

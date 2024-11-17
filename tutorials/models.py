@@ -61,29 +61,40 @@ class Subject(models.Model):
         return self.name
 
 class Frequency:
-    #Class for converting frequency integers to string values.
+    # Mapping of frequency values to their string representations.
+    FREQUENCY_CHOICES = {
+        1: "Weekly",
+        0.5: "Fortnightly",
+        2: "Bi-weekly",
+        0.25: "Monthly",
+    }
+
     @staticmethod
     def to_string(frequency_value):
-        #Converts the frequency integer to a corresponding string.
-        if frequency_value == 1:
-            return "1 session per week"
-        elif frequency_value == 0.5:
-            return "Fortnightly"
-        elif frequency_value == 2:
-            return "Bi-weekly"
-        elif frequency_value == 0.25:
-            return "Monthly"
-        else:
-            return "Unknown frequency"
+        # Returns the string representation of a frequency value.
+        return Frequency.FREQUENCY_CHOICES.get(frequency_value, "Unknown frequency")
+
+    @staticmethod
+    def choices():
+        # Provides a list of tuples for form field choices.
+        return [(key, value) for key, value in Frequency.FREQUENCY_CHOICES.items()]
 
 class RequestSession(models.Model):
     #Model for a session request made by a student, composite key made by combining the student and the subject they want#
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='requests')
     tutor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='tutored_sessions')
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
-    frequency = models.FloatField()  # Use FloatField to store float values like 0.5, 2, etc.
-    proficiency = models.CharField(max_length=50)
     date_requested = models.DateTimeField(auto_now_add=True)
+    frequency = models.FloatField()  
+    proficiency = models.CharField(
+        max_length=50,
+        choices=[
+            ('beginner', 'Beginner'),
+            ('intermediate', 'Intermediate'),
+            ('advanced', 'Advanced'),
+        ],
+        default='beginner',
+    )
 
     class Meta:
         unique_together = ('student', 'subject')
@@ -94,6 +105,10 @@ class RequestSession(models.Model):
     def get_frequency_as_string(self):
         #Returns the frequency as a string.
         return Frequency.to_string(self.frequency)
+    
+
+
+
 
 class Match(models.Model):
     """Model for matching requests to tutors"""
@@ -113,3 +128,4 @@ class TutorSubject(models.Model):
 
     def __str__(self):
         return f"{self.tutor.username} - {self.subject.name}"
+    

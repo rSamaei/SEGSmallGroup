@@ -1,9 +1,10 @@
 {% extends 'base_content.html' %}
+
 {% block content %}
 <div class="container">
   <div class="row">
     <div class="col-12">
-      <h1>Welcome to your dashboard {{ user.username }}</h1>
+      <h1>Welcome to your dashboard, {{ user.username }}</h1>
     </div>
     <div>
       <table class="table table-bordered table-dark">
@@ -12,21 +13,44 @@
             <th scope="col">Student</th>
             <th scope="col">Tutor</th>
             <th scope="col">Subject</th>
-            <th scope="col">Student proficiency</th>
+            <th scope="col">Student Proficiency</th>
             <th scope="col">Frequency</th>
-            <th scope="col">Date</th>
+            <th scope="col">Date Requested</th>
+            <th scope="col">Actions</th>
           </tr>
         </thead>
-        {% for request in requests %}
-          <tr>
-            <td>{{ request.student_name }}</td>
-            <td>{{ request.tutor_name }}</td>
-            <td>{{ request.subject }}</td>
-            <td>{{ request.prof }}</td>
-            <td>{{ request.freq }}</td>
-            <td>{{ request.date }}</td>
-          </tr>
-        {% endfor %}
+        <tbody>
+          {% for request in requests %}
+            <tr>
+              <td>{{ request.student.username }}</td>
+              <td>
+                {% if request.tutor %}
+                  {{ request.tutor.username }}
+                {% else %}
+                  No tutor assigned
+                {% endif %}
+              </td>
+              <td>{{ request.subject.name }}</td>
+              <td>{{ request.proficiency }}</td>
+              <td>{{ request.get_frequency_as_string }}</td>
+              <td>{{ request.date_requested }}</td>
+              <td>
+                {% if not request.tutor %}
+                  <form method="POST" action="{% url 'delete_request' request.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                  </form>
+                {% else %}
+                  <span class="text-muted">Tutor Assigned</span>
+                {% endif %}
+              </td>             
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7">{{ message }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
       </table>
       <p>{{ message }}</p>
       
@@ -35,8 +59,9 @@
           <a href="{% url 'add_request' %}" class="btn btn-primary">Add New Request</a>
         </div>
       {% endif %}
-      
     </div>
   </div>
 </div>
 {% endblock %}
+
+

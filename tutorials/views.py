@@ -4,11 +4,11 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ImproperlyConfigured
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect, render, get_object_or_404
 from django.views import View
 from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
-from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm
+from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, RequestSessionForm
 from tutorials.helpers import login_prohibited
 
 from tutorials.models import RequestSession
@@ -18,12 +18,14 @@ from .forms import RequestSessionForm
 from django.urls import reverse_lazy
 from django.views.generic.edit import CreateView
 
+
+
 @login_required
 def dashboard(request):
-    #Display the current user's dashboard.
+    # Display the current user's dashboard.
     current_user = request.user
-    list = []
     
+    # Determine which requests to show based on the user type
     if current_user.user_type == 'admin':
         # Admins can see all requests
         sessions = RequestSession.objects.all()
@@ -33,21 +35,16 @@ def dashboard(request):
     else:
         # Students can only see their own requests
         sessions = RequestSession.objects.filter(student=current_user)
-
-    for e in sessions:
-        tempDict = {
-            'student_name': e.student.full_name(),
-            'tutor_name': e.tutor.full_name() if e.tutor else 'No tutor assigned',
-            'subject': e.subject.name,
-            'prof': e.proficiency,
-            'freq': e.get_frequency_as_string(),
-            'date': e.date_requested.strftime('%d/%m/%Y')
-        }
-        list.append(tempDict)
+    
     noRequestMessage = ''
-    if len(list) == 0:
+    if not sessions:
         noRequestMessage = 'No requests were found'
-    return render(request, 'dashboard.html', {'user': current_user, 'requests': list, 'message': noRequestMessage})
+    
+    return render(request, 'dashboard.html', {
+        'user': current_user,
+        'requests': sessions, 
+        'message': noRequestMessage
+    })
         
 @login_prohibited
 def home(request):
@@ -63,8 +60,28 @@ class AddRequestView(LoginRequiredMixin, CreateView):
     success_url = reverse_lazy('dashboard')
 
     def form_valid(self, form):
-        form.instance.student = self.request.user  # Automatically set the current user as the student
+        # Automatically set the current user as the student
+        form.instance.student = self.request.user
+        # Optionally, set the tutor as None or based on some other logic
+        form.instance.tutor = None  # You can keep it as None or apply logic to assign a tutor
         return super().form_valid(form)
+
+@login_required
+def delete_request(request, request_id):
+    # Get the request session object to delete
+    request_session = get_object_or_404(RequestSession, id=request_id)
+    
+    # Check if the logged-in user is the owner of the request (or an admin)
+    if request.user == request_session.student or request.user.user_type == 'admin':
+        if not request_session.tutor:
+            request_session.delete()  # Delete the request if no tutor is assigned
+            messages.success(request, "Your request has been deleted.")
+        else:
+            messages.error(request, "You cannot delete a request with a tutor assigned.")
+    else:
+        messages.error(request, "You do not have permission to delete this request.")
+    
+    return redirect('dashboard')
 
 
 class LoginProhibitedMixin:
@@ -95,19 +112,19 @@ class LoginProhibitedMixin:
 
 
 class LogInView(LoginProhibitedMixin, View):
-    """Display login screen and handle user login."""
+    #Display login screen and handle user login.
 
     http_method_names = ['get', 'post']
     redirect_when_logged_in_url = settings.REDIRECT_URL_WHEN_LOGGED_IN
 
     def get(self, request):
-        """Display log in template."""
+        #Display log in template.
 
         self.next = request.GET.get('next') or ''
         return self.render()
 
     def post(self, request):
-        """Handle log in attempt."""
+        #Handle log in attempt.
 
         form = LogInForm(request.POST)
         self.next = request.POST.get('next') or settings.REDIRECT_URL_WHEN_LOGGED_IN
@@ -119,66 +136,66 @@ class LogInView(LoginProhibitedMixin, View):
         return self.render()
 
     def render(self):
-        """Render log in template with blank log in form."""
+        #Render log in template with blank log in form.
 
         form = LogInForm()
         return render(self.request, 'log_in.html', {'form': form, 'next': self.next})
 
 
 def log_out(request):
-    """Log out the current user"""
+    #Log out the current user
 
     logout(request)
     return redirect('home')
 
 
 class PasswordView(LoginRequiredMixin, FormView):
-    """Display password change screen and handle password change requests."""
+    #Display password change screen and handle password change requests.
 
     template_name = 'password.html'
     form_class = PasswordForm
 
     def get_form_kwargs(self, **kwargs):
-        """Pass the current user to the password change form."""
+        #Pass the current user to the password change form.
 
         kwargs = super().get_form_kwargs(**kwargs)
         kwargs.update({'user': self.request.user})
         return kwargs
 
     def form_valid(self, form):
-        """Handle valid form by saving the new password."""
+        #Handle valid form by saving the new password.
 
         form.save()
         login(self.request, self.request.user)
         return super().form_valid(form)
 
     def get_success_url(self):
-        """Redirect the user after successful password change."""
+        #Redirect the user after successful password change.
 
         messages.add_message(self.request, messages.SUCCESS, "Password updated!")
         return reverse('dashboard')
 
 
 class ProfileUpdateView(LoginRequiredMixin, UpdateView):
-    """Display user profile editing screen, and handle profile modifications."""
+    #Display user profile editing screen, and handle profile modifications.
 
     model = UserForm
     template_name = "profile.html"
     form_class = UserForm
 
     def get_object(self):
-        """Return the object (user) to be updated."""
+        #Return the object (user) to be updated.
         user = self.request.user
         return user
 
     def get_success_url(self):
-        """Return redirect URL after successful update."""
+        #Return redirect URL after successful update.
         messages.add_message(self.request, messages.SUCCESS, "Profile updated!")
         return reverse(settings.REDIRECT_URL_WHEN_LOGGED_IN)
 
 
 class SignUpView(LoginProhibitedMixin, FormView):
-    """Display the sign up screen and handle sign ups."""
+    #Display the sign up screen and handle sign ups.
 
     form_class = SignUpForm
     template_name = "sign_up.html"
