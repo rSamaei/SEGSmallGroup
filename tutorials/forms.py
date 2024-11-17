@@ -108,3 +108,12 @@ class SignUpForm(NewPasswordMixin, forms.ModelForm):
             password=self.cleaned_data.get('new_password'),
         )
         return user
+
+class NewAdminForm(NewPasswordMixin, forms.ModelForm):
+    """Form to create new admin."""
+
+    class Meta:
+        """Form options."""
+
+        model = User
+        fields = ['first_name', 'last_name', 'username', 'email']
