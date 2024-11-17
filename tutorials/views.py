@@ -8,7 +8,7 @@ from django.shortcuts import redirect, render
 from django.views import View
 from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
-from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm
+from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm
 from tutorials.helpers import login_prohibited
 from tutorials.models import RequestSession, User, Match
 
@@ -34,55 +34,41 @@ def dashboard(request):
 
 @login_required
 def admin_requested_sessions(request):
-    """Display all unmatched requests for admin users."""
     if not request.user.is_admin:
         return redirect('dashboard')
-        
-    context = {'user': request.user}
-
-    # Get unmatched requests with related data
+    
     unmatched_requests = RequestSession.objects.filter(
         match__isnull=True
     ).select_related('student', 'subject')
     
-    # Find eligible tutors for each request
-    requests_with_tutors = []
+    # Create form for each request
+    requests_with_forms = []
     for req in unmatched_requests:
-        eligible_tutors = User.objects.filter(
-            user_type='tutor',
-            tutor_subjects__subject=req.subject,
-            tutor_subjects__proficiency=req.proficiency
-        ).distinct()
-        
-        requests_with_tutors.append({
+        requests_with_forms.append({
             'request': req,
-            'eligible_tutors': eligible_tutors
+            'form': TutorMatchForm(req)
         })
-        
-    context.update({
-        'requests_with_tutors': requests_with_tutors,
+    
+    return render(request, 'admin_requested_sessions.html', {
+        'requests_with_forms': requests_with_forms,
         'is_admin_view': True
     })
-
-    return render(request, 'admin_requested_sessions.html', context)
 
 @login_required
 def admin_requested_session_highlighted(request, request_id):
     """Display detailed view of a specific request."""
     session_request = RequestSession.objects.get(id=request_id)
-    eligible_tutors = User.objects.filter(
-        user_type='tutor',
-        tutor_subjects__subject=session_request.subject,
-        tutor_subjects__proficiency=session_request.proficiency
-    ).prefetch_related('tutor_subjects__subject').distinct()
+    
+    # initialise form with request data if submitted
+    form = TutorMatchForm(session_request, request.GET or None)
     
     selected_tutor = None
-    if 'tutor_id' in request.GET:
-        selected_tutor = eligible_tutors.get(id=request.GET['tutor_id'])
+    if form.is_valid():
+        selected_tutor = form.cleaned_data['tutor']
     
     return render(request, 'admin_requested_session_highlighted.html', {
         'request': session_request,
-        'eligible_tutors': eligible_tutors,
+        'form': form,
         'selected_tutor': selected_tutor
     })
 
@@ -92,17 +78,21 @@ def create_match(request, request_id):
     if not request.user.is_admin:
         return redirect('dashboard')
     
+    session = RequestSession.objects.get(id=request_id)
+    
     if request.method == 'POST':
-        session = RequestSession.objects.get(id=request_id)
-        tutor = User.objects.get(id=request.POST['tutor_id'])
-        
-        Match.objects.create(
-            request_session=session,
-            tutor=tutor
-        )
-        messages.success(request, 'Match created successfully')
-        
-    return redirect('dashboard')
+        form = TutorMatchForm(session, request.POST)
+        if form.is_valid():
+            Match.objects.create(
+                request_session=session,
+                tutor=form.cleaned_data['tutor']
+            )
+            messages.success(request, 'Match created successfully')
+        else:
+            messages.error(request, 'Invalid form submission')
+            return redirect('admin_requested_session_highlighted', request_id=request_id)
+    
+    return redirect('admin_requested_sessions')
 
 
 @login_prohibited

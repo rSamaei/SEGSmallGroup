@@ -24,9 +24,9 @@
                     <h3 class="card-title">Select Tutor</h3>
                     <hr>
                     <form method="get">
-                        <select class="form-select mb-3" name="tutor_id" onchange="this.form.submit()">
-                            <option value="">Choose a tutor...</option>
-                            {% for tutor in eligible_tutors %}
+                        <select name="tutor" class="form-select mb-3" onchange="this.form.submit()">
+                            <option value="">Select a tutor...</option>
+                            {% for tutor in form.tutor.field.queryset %}
                                 <option value="{{ tutor.id }}" {% if selected_tutor.id == tutor.id %}selected{% endif %}>
                                     {{ tutor.username }}
                                 </option>
@@ -53,7 +53,7 @@
                             
                             <form method="post" action="{% url 'create_match' request.id %}">
                                 {% csrf_token %}
-                                <input type="hidden" name="tutor_id" value="{{ selected_tutor.id }}">
+                                <input type="hidden" name="tutor" value="{{ selected_tutor.id }}">
                                 <button type="submit" class="btn btn-primary">Create Match</button>
                             </form>
                         </div>
