@@ -4,13 +4,14 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ImproperlyConfigured
+from django.http import HttpResponseRedirect
 from django.shortcuts import redirect, render
 from django.views import View
 from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
-from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm
+from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, NewAdminForm
 from tutorials.helpers import login_prohibited
-from tutorials.models import RequestSession
+from tutorials.models import RequestSession, User
 
 
 @login_required
@@ -27,6 +28,37 @@ def dashboard(request):
         noRequestMessage = 'No requests were found'
 
     return render(request, 'dashboard.html', {'user': current_user, 'requests':list, 'message':noRequestMessage})
+
+
+def registerNewAdmin(request):
+    form = None
+    if request.method == "POST":
+       form = NewAdminForm(request.POST) 
+       if form.is_valid():
+            try:
+                user = User.objects.create_user(
+                    form.cleaned_data.get('username'),
+                    first_name=form.cleaned_data.get('first_name'),
+                    last_name=form.cleaned_data.get('last_name'),
+                    email=form.cleaned_data.get('email'),
+                    password=form.cleaned_data.get('new_password'),
+                    user_type = 'admin',
+                )
+                user.save()
+            except:
+                form.add_error(None,"Unable to create")
+            else:
+                path = reverse('dashboard')
+                return HttpResponseRedirect(path)
+
+                   
+    else:
+        form = NewAdminForm()
+    
+    return render(request, 'registerAdmin.html', {'form':form})
+
+
+
 
 
 @login_prohibited
