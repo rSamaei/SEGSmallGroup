@@ -7,6 +7,9 @@
       <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="user-account-dropdown">
         <li><a class="dropdown-item" href="{% url 'profile' %}">Change profile</a></li>
         <li><a class="dropdown-item" href="{% url 'password' %}">Change password</a></li>
+        {% if user.is_admin %}
+          <li><a class="dropdown-item" href="{% url 'registerAdmin' %}">Create new admin</a></li>
+        {% endif %}
         <li><hr class="dropdown-divider"></li>
         <li><a class="dropdown-item" href="{% url 'log_out' %}">Log out</a></li>
       </ul>
