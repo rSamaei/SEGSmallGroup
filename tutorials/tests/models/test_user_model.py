@@ -19,6 +19,36 @@ class UserModelTestCase(TestCase):
     def test_valid_user(self):
         self._assert_user_is_valid()
 
+    def test_user_is_tutor(self):
+        """Test user is correctly identified as a tutor"""
+        self.user.user_type = 'tutor'
+        self.assertTrue(self.user.is_tutor)
+
+    def test_user_is_not_tutor(self):
+        """Test user is correctly identified as not a tutor"""
+        self.user.user_type = 'student'
+        self.assertFalse(self.user.is_tutor)
+    
+    def test_user_is_student(self):
+        """Test user is correctly identified as a student"""
+        self.user.user_type = 'student'
+        self.assertTrue(self.user.is_student)
+    
+    def test_user_is_not_student(self):
+        """Test user is correctly identified as not a student"""
+        self.user.user_type = 'tutor'
+        self.assertFalse(self.user.is_student)
+    
+    def test_user_is_admin(self):
+        """Test user is correctly identified as an admin"""
+        self.user.user_type = 'admin'
+        self.assertTrue(self.user.is_admin)
+
+    def test_user_is_not_admin(self):
+        """Test user is correctly identified as not an admin"""
+        self.user.user_type = 'student'
+        self.assertFalse(self.user.is_admin)
+
     def test_username_cannot_be_blank(self):
         self.user.username = ''
         self._assert_user_is_invalid()

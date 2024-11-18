@@ -129,10 +129,26 @@ class TutorMatchForm(forms.Form):
         widget=forms.Select(attrs={'class': 'form-select mb-3'})
     )
 
-    def __init__(self, request_session, *args, **kwargs):
+    def __init__(self, request_session: RequestSession, *args, **kwargs) -> None:
+        """Initialize form with filtered tutor queryset based on request requirements."""
+        # Call parent class initialization
         super().__init__(*args, **kwargs)
+        
+        # Filter tutors based on:
+        # 1. Must be a tutor type user
+        # 2. Must teach the requested subject
+        # 3. Must have required proficiency level
         self.fields['tutor'].queryset = User.objects.filter(
-            user_type='tutor',
-            tutor_subjects__subject=request_session.subject,
-            tutor_subjects__proficiency=request_session.proficiency
-        ).distinct()
+            user_type='tutor',  # Only get tutor users
+            tutor_subjects__subject=request_session.subject,  # Match subject
+            tutor_subjects__proficiency=request_session.proficiency  # Match proficiency
+        ).distinct()  # Remove duplicates if tutor teaches multiple subjects
+
+    def save(self, request_session: RequestSession) -> Match:
+        """Save the match to the database."""
+        tutor = self.cleaned_data['tutor']
+        match = Match.objects.create(
+            request_session=request_session,
+            tutor=tutor
+        )
+        return match
