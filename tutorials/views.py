@@ -37,11 +37,12 @@ def admin_requested_sessions(request):
     if not request.user.is_admin:
         return redirect('dashboard')
     
+    # query for unmatched requests, select related performs a join on the student and subject tables to find 
     unmatched_requests = RequestSession.objects.filter(
         match__isnull=True
     ).select_related('student', 'subject')
     
-    # Create form for each request
+    # Create a form for each request
     requests_with_forms = []
     for req in unmatched_requests:
         requests_with_forms.append({
@@ -49,6 +50,7 @@ def admin_requested_sessions(request):
             'form': TutorMatchForm(req)
         })
     
+    # Render the admin requested sessions template with the requests and forms
     return render(request, 'admin_requested_sessions.html', {
         'requests_with_forms': requests_with_forms,
         'is_admin_view': True
@@ -57,15 +59,18 @@ def admin_requested_sessions(request):
 @login_required
 def admin_requested_session_highlighted(request, request_id):
     """Display detailed view of a specific request."""
+    # Fetch the specific request session by ID
     session_request = RequestSession.objects.get(id=request_id)
     
-    # initialise form with request data if submitted
+    # Initialize form with request data if submitted
     form = TutorMatchForm(session_request, request.GET or None)
     
     selected_tutor = None
     if form.is_valid():
+        # Get the selected tutor from the form
         selected_tutor = form.cleaned_data['tutor']
     
+    # Render the detailed view template with the request, form, and selected tutor
     return render(request, 'admin_requested_session_highlighted.html', {
         'request': session_request,
         'form': form,
@@ -75,14 +80,18 @@ def admin_requested_session_highlighted(request, request_id):
 @login_required
 def create_match(request, request_id):
     """Create a match between request and selected tutor."""
+    # Ensure the user is an admin
     if not request.user.is_admin:
         return redirect('dashboard')
     
+    # Fetch the specific request session by ID
     session = RequestSession.objects.get(id=request_id)
     
     if request.method == 'POST':
+        # Initialize form with POST data
         form = TutorMatchForm(session, request.POST)
         if form.is_valid():
+            # Create a new match with the selected tutor
             Match.objects.create(
                 request_session=session,
                 tutor=form.cleaned_data['tutor']
@@ -92,6 +101,7 @@ def create_match(request, request_id):
             messages.error(request, 'Invalid form submission')
             return redirect('admin_requested_session_highlighted', request_id=request_id)
     
+    # Redirect to the admin requested sessions view
     return redirect('admin_requested_sessions')
 
 
