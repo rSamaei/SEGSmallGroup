@@ -2,7 +2,7 @@
 from django import forms
 from django.contrib.auth import authenticate
 from django.core.validators import RegexValidator
-from .models import User
+from .models import User, Match, RequestSession
 
 class LogInForm(forms.Form):
     """Form enabling registered users to log in."""
@@ -108,3 +108,31 @@ class SignUpForm(NewPasswordMixin, forms.ModelForm):
             password=self.cleaned_data.get('new_password'),
         )
         return user
+
+class TutorMatchForm(forms.Form):
+    """
+    A form for matching tutors with request sessions based on subject and proficiency.
+    This form provides a single ModelChoiceField for selecting a tutor from a filtered
+    queryset of users who:
+        1. Have the user type 'tutor'
+        2. Match the subject of the request session
+        3. Match the proficiency level of the request session
+    Attributes:
+        tutor (ModelChoiceField): A dropdown field for selecting a tutor with 
+            Bootstrap styling.
+    Args:
+        request_session: The session request object containing subject and 
+            proficiency requirements.
+    """
+    tutor = forms.ModelChoiceField(
+        queryset=None,
+        widget=forms.Select(attrs={'class': 'form-select mb-3'})
+    )
+
+    def __init__(self, request_session, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['tutor'].queryset = User.objects.filter(
+            user_type='tutor',
+            tutor_subjects__subject=request_session.subject,
+            tutor_subjects__proficiency=request_session.proficiency
+        ).distinct()
