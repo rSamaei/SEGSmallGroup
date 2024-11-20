@@ -1,0 +1,42 @@
+{% extends 'base_content.html' %}
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-12">
+      <h1>Full Calendar - {{ month_name }} {{ year }}</h1>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-12">
+        <table class="full-calendar-table">
+        <thead>
+          <tr>
+            <th>Mon</th>
+            <th>Tue</th>
+            <th>Wed</th>
+            <th>Thu</th>
+            <th>Fri</th>
+            <th>Sat</th>
+            <th>Sun</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for week in calendar_month %}
+            <tr>
+              {% for day in week %}
+                {% if day == 0 %}
+                  <td></td> <!-- Empty cell for days outside the month -->
+                {% elif day in highlighted_dates %}
+                  <td class="highlighted-day">{{ day }}</td>
+                {% else %}
+                  <td>{{ day }}</td>
+                {% endif %}
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

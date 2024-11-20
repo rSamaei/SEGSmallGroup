@@ -12,6 +12,12 @@ from django.urls import reverse
 from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm
 from tutorials.helpers import login_prohibited
 from tutorials.models import RequestSession, TutorSubject, User, Match, RequestSessionDay
+from django.utils.timezone import now
+from datetime import date, timedelta, datetime
+from calendar import Calendar, calendar, monthcalendar, month_name, monthrange
+from collections import defaultdict
+import calendar as pycalendar
+
 
 
 @login_required
@@ -20,18 +26,38 @@ def dashboard(request):
     current_user = request.user
     context = {'user': current_user}
 
-    if (current_user.is_admin):
-        # Get count of unmatched requests
-        unmatched_count = RequestSession.objects.filter(
-            match__isnull=True
-        ).count()
-        
+    if current_user.is_admin:
+        unmatched_count = RequestSession.objects.filter(match__isnull=True).count()
         context.update({
             'unmatched_count': unmatched_count,
             'is_admin_view': True
         })
+    else:
+        # Add calendar context for non-admin users
+        context.update(get_calendar_context(current_user))
 
     return render(request, 'dashboard.html', context)
+
+
+@login_required
+def calendar_view(request):
+    """Display a full calendar with matched schedules."""
+    current_user = request.user
+
+    # Use the helper function to get calendar context
+    calendar_context = get_calendar_context(current_user)
+
+    # Add additional details for the full calendar view
+    from datetime import date
+    today = date.today()
+    context = {
+        'calendar_month': calendar_context['calendar_month'],
+        'highlighted_dates': calendar_context['highlighted_dates'],
+        'month_name': today.strftime('%B'),
+        'year': today.year,
+    }
+
+    return render(request, 'calendar.html', context)
 
 @login_required
 def admin_requested_sessions(request):
@@ -221,6 +247,28 @@ def log_out(request):
     logout(request)
     return redirect('home')
 
+def get_calendar_context(user):
+    """Generate the calendar context for the user dashboard."""
+    # Get the current month and year
+    today = date.today()
+    cal = pycalendar.Calendar(firstweekday=0)
+    calendar_month = cal.monthdayscalendar(today.year, today.month)
+
+    # Gather matched session days
+    matched_days = RequestSessionDay.objects.filter(
+        request_session__match__tutor=user
+    ).values_list('day_of_week', flat=True)
+
+    # Prepare a dictionary of highlighted dates
+    highlighted_dates = {}
+    for day in matched_days:
+        highlighted_dates[day] = True
+
+    # Return the prepared calendar context
+    return {
+        'calendar_month': calendar_month,
+        'highlighted_dates': highlighted_dates,
+    }
 
 class PasswordView(LoginRequiredMixin, FormView):
     """Display password change screen and handle password change requests."""
