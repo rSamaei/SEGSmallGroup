@@ -1,3 +1,4 @@
+from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout
@@ -10,7 +11,7 @@ from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
 from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm
 from tutorials.helpers import login_prohibited
-from tutorials.models import RequestSession, User, Match
+from tutorials.models import RequestSession, TutorSubject, User, Match, RequestSessionDay
 
 
 @login_required
@@ -79,30 +80,57 @@ def admin_requested_session_highlighted(request, request_id):
 
 @login_required
 def create_match(request, request_id):
-    """Create a match between request and selected tutor."""
+    """Create a match between a request and a selected tutor."""
     # Ensure the user is an admin
     if not request.user.is_admin:
         return redirect('dashboard')
-    
+
     # Fetch the specific request session by ID
     session = RequestSession.objects.get(id=request_id)
-    
+
+    # Check if a match already exists
+    if Match.objects.filter(request_session=session).exists():
+        messages.error(request, "This request session is already matched.")
+        return redirect('admin_requested_sessions')
+
+    # Get the days associated with the request session
+    session_days = RequestSessionDay.objects.filter(request_session=session).values_list('day_of_week', flat=True)
+
     if request.method == 'POST':
         # Initialize form with POST data
         form = TutorMatchForm(session, request.POST)
         if form.is_valid():
-            # Create a new match with the selected tutor
-            Match.objects.create(
-                request_session=session,
-                tutor=form.cleaned_data['tutor']
-            )
-            messages.success(request, 'Match created successfully')
+            tutor = form.cleaned_data['tutor']
+
+            # Ensure the selected tutor is available on all requested days
+            tutor_subjects = TutorSubject.objects.filter(tutor=tutor, subject=session.subject)
+
+            # Check tutor availability on requested days
+            tutor_available = True
+            for day in session_days:
+                if not tutor_subjects.filter(proficiency=session.proficiency).exists():
+                    tutor_available = False
+                    break
+
+            if tutor_available:
+                # Create the match
+                Match.objects.create(
+                    request_session=session,
+                    tutor=tutor
+                )
+                messages.success(request, 'Match created successfully')
+                return redirect('admin_requested_sessions')
+            else:
+                messages.error(request, f'Tutor {tutor.full_name()} is not available for all requested days.')
         else:
             messages.error(request, 'Invalid form submission')
             return redirect('admin_requested_session_highlighted', request_id=request_id)
-    
-    # Redirect to the admin requested sessions view
+
+    # Redirect to the admin requested sessions view if GET request or form submission fails
     return redirect('admin_requested_sessions')
+
+
+
 
 
 @login_prohibited
@@ -110,6 +138,23 @@ def home(request):
     """Display the application's start/home screen."""
 
     return render(request, 'home.html')
+
+class TutorMatchForm(forms.Form):
+    tutor = forms.ModelChoiceField(
+        queryset=None,
+        widget=forms.Select(attrs={'class': 'form-select mb-3'})
+    )
+
+    def __init__(self, request_session, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        requested_days = request_session.days.values_list('day_of_week', flat=True)
+        self.fields['tutor'].queryset = User.objects.filter(
+            user_type='tutor',
+            tutor_subjects__subject=request_session.subject,
+            tutor_subjects__proficiency=request_session.proficiency
+        ).exclude(
+            matches__request_session__days__day_of_week__in=requested_days
+        ).distinct()
 
 
 class LoginProhibitedMixin:
