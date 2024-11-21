@@ -1,3 +1,4 @@
+from itertools import cycle
 from django import forms
 from django.conf import settings
 from django.contrib import messages
@@ -58,6 +59,8 @@ def calendar_view(request):
     }
 
     return render(request, 'calendar.html', context)
+
+
 
 @login_required
 def admin_requested_sessions(request):
@@ -249,20 +252,38 @@ def log_out(request):
 
 def get_calendar_context(user):
     """Generate the calendar context for the user dashboard."""
+    # Define a color palette for different sessions
+    colors = cycle(['#FFD700', '#FF8C00', '#1E90FF', '#32CD32', '#FF69B4', '#7B68EE'])
+
     # Get the current month and year
     today = date.today()
     cal = pycalendar.Calendar(firstweekday=0)
     calendar_month = cal.monthdayscalendar(today.year, today.month)
 
-    # Gather matched session days
-    matched_days = RequestSessionDay.objects.filter(
-        request_session__match__tutor=user
-    ).values_list('day_of_week', flat=True)
+    # Fetch all matched sessions for this user
+    matched_sessions = RequestSessionDay.objects.filter(
+        request_session__match__tutor=user,
+        request_session__match__isnull=False  # Ensure there's a match
+    ).select_related('request_session')
+
+    # Dictionary to store color for each session ID
+    session_colors = {}
+    for session in matched_sessions:
+        if session.request_session.id not in session_colors:
+            session_colors[session.request_session.id] = next(colors)
 
     # Prepare a dictionary of highlighted dates
     highlighted_dates = {}
-    for day in matched_days:
-        highlighted_dates[day] = True
+    for session_day in matched_sessions:
+        day_of_week = session_day.day_of_week
+
+        # Find all days of this weekday in the current month
+        for week in calendar_month:
+            if week[day_of_week]:  # if day is not 0, i.e., it exists in the month
+                day = week[day_of_week]
+                if day not in highlighted_dates:
+                    highlighted_dates[day] = []
+                highlighted_dates[day].append(session_colors[session_day.request_session.id])
 
     # Return the prepared calendar context
     return {
