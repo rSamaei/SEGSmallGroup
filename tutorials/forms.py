@@ -109,6 +109,7 @@ class SignUpForm(NewPasswordMixin, forms.ModelForm):
         )
         return user
 
+
 class TutorMatchForm(forms.Form):
     """
     A form for matching tutors with request sessions based on subject and proficiency.
@@ -152,3 +153,12 @@ class TutorMatchForm(forms.Form):
             tutor=tutor
         )
         return match
+      
+class NewAdminForm(NewPasswordMixin, forms.ModelForm):
+    """Form to create new admin."""
+
+    class Meta:
+        """Form options."""
+
+        model = User
+        fields = ['first_name', 'last_name', 'username', 'email']

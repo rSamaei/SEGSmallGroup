@@ -4,11 +4,12 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ImproperlyConfigured
+from django.http import HttpResponseRedirect
 from django.shortcuts import redirect, render
 from django.views import View
 from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
-from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm
+from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm, NewAdminForm
 from tutorials.helpers import login_prohibited
 from tutorials.models import RequestSession, User, Match
 
@@ -102,6 +103,37 @@ def create_match(request, request_id):
         return redirect('admin_requested_session_highlighted', request_id=request_id)
     
     return redirect('admin_requested_sessions')
+
+
+def registerNewAdmin(request):
+    form = None
+    if request.method == "POST":
+       form = NewAdminForm(request.POST) 
+       if form.is_valid():
+            try:
+                user = User.objects.create_user(
+                    form.cleaned_data.get('username'),
+                    first_name=form.cleaned_data.get('first_name'),
+                    last_name=form.cleaned_data.get('last_name'),
+                    email=form.cleaned_data.get('email'),
+                    password=form.cleaned_data.get('new_password'),
+                    user_type = 'admin',
+                )
+                user.save()
+            except:
+                form.add_error(None,"Unable to create")
+            else:
+                path = reverse('dashboard')
+                return HttpResponseRedirect(path)
+
+                   
+    else:
+        form = NewAdminForm()
+    
+    return render(request, 'registerAdmin.html', {'form':form})
+
+
+
 
 
 @login_prohibited
