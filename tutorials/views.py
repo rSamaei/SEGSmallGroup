@@ -35,6 +35,9 @@ def dashboard(request):
             'unmatched_count': unmatched_count,
             'is_admin_view': True
         })
+    else:
+        # Add calendar context for non-admin users
+        context.update(get_calendar_context(current_user))
 
     return render(request, 'dashboard.html', context)
 
