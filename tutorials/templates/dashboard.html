@@ -23,12 +23,44 @@
               </div>
           </div>
       {% else %}
-          <h2>User Dashboard</h2>
-          <!-- we can do this for tutor and students -->
-      {% endif %}
-   </table> 
-   <p>{{message}}</p>
-   </div>
+    <!-- Student/Tutor Dashboard -->
+    <div class="col-md-8">
+      <h2>Dashboard</h2>
+      <!-- Placeholder for other student/tutor-specific features -->
+    </div>
+    <div class="col-md-4">
+      <h2>Mini Calendar</h2>
+      <table class="mini-calendar-table">
+        <thead>
+          <tr>
+            <th>Mon</th>
+            <th>Tue</th>
+            <th>Wed</th>
+            <th>Thu</th>
+            <th>Fri</th>
+            <th>Sat</th>
+            <th>Sun</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for week in calendar_month %}
+          <tr>
+            {% for day in week %}
+            {% if day == 0 %}
+            <td></td>
+            {% elif day in highlighted_dates %}
+            <td class="highlighted-day">{{ day }}</td>
+            {% else %}
+            <td>{{ day }}</td>
+            {% endif %}
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <a href="{% url 'calendar_view' %}" class="btn btn-secondary mt-3">View Full Calendar</a>
+    </div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}
