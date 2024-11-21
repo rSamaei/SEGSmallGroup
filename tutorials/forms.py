@@ -2,7 +2,9 @@
 from django import forms
 from django.contrib.auth import authenticate
 from django.core.validators import RegexValidator
-from .models import User
+
+from django.forms import Select
+from .models import User, Match, RequestSession, RequestSessionDay
 
 class LogInForm(forms.Form):
     """Form enabling registered users to log in."""
@@ -108,3 +110,86 @@ class SignUpForm(NewPasswordMixin, forms.ModelForm):
             password=self.cleaned_data.get('new_password'),
         )
         return user
+
+class TutorMatchForm(forms.Form):
+    """
+    A form for matching tutors with request sessions based on subject and proficiency.
+    This form provides a single ModelChoiceField for selecting a tutor from a filtered
+    queryset of users who:
+        1. Have the user type 'tutor'
+        2. Match the subject of the request session
+        3. Match the proficiency level of the request session
+    Attributes:
+        tutor (ModelChoiceField): A dropdown field for selecting a tutor with 
+            Bootstrap styling.
+    Args:
+        request_session: The session request object containing subject and 
+            proficiency requirements.
+    """
+    tutor = forms.ModelChoiceField(
+        queryset=None,
+        widget=forms.Select(attrs={'class': 'form-select mb-3'})
+    )
+
+    def __init__(self, request_session: RequestSession, *args, **kwargs) -> None:
+        """Initialize form with filtered tutor queryset based on request requirements."""
+        # Call parent class initialization
+        super().__init__(*args, **kwargs)
+        
+        # Filter tutors based on:
+        # 1. Must be a tutor type user
+        # 2. Must teach the requested subject
+        # 3. Must have required proficiency level
+        self.fields['tutor'].queryset = User.objects.filter(
+            user_type='tutor',  # Only get tutor users
+            tutor_subjects__subject=request_session.subject,  # Match subject
+            tutor_subjects__proficiency=request_session.proficiency  # Match proficiency
+        ).distinct()  # Remove duplicates if tutor teaches multiple subjects
+
+    def save(self, request_session: RequestSession) -> Match:
+        """Save the match to the database."""
+        tutor = self.cleaned_data['tutor']
+        match = Match.objects.create(
+            request_session=request_session,
+            tutor=tutor
+        )
+        return match
+      
+class NewAdminForm(NewPasswordMixin, forms.ModelForm):
+    """Form to create new admin."""
+
+    class Meta:
+        """Form options."""
+
+        model = User
+        fields = ['first_name', 'last_name', 'username', 'email']
+
+
+class RequestSessionForm(forms.ModelForm):
+    """Form for creating or updating RequestSession with multiple days."""
+
+    days = forms.MultipleChoiceField(
+        choices=[
+            ('Monday', 'Monday'),
+            ('Tuesday', 'Tuesday'),
+            ('Wednesday', 'Wednesday'),
+            ('Thursday', 'Thursday'),
+            ('Friday', 'Friday'),
+        ],
+        widget=forms.CheckboxSelectMultiple
+    )
+
+    class Meta:
+        model = RequestSession
+        fields = ['subject', 'proficiency', 'days']
+        widgets = {
+            'frequency': Select(attrs={'class': 'form-select'}),
+        }
+
+    def save_days(self, request_session, days):
+        """Save the selected days to the RequestSessionDay model."""
+        # Clear existing days
+        RequestSessionDay.objects.filter(request_session=request_session).delete()
+        # Add new days
+        for day in days:
+            RequestSessionDay.objects.create(request_session=request_session, day_of_week=day)

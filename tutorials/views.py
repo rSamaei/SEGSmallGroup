@@ -1,23 +1,166 @@
+from itertools import cycle
+from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ImproperlyConfigured
+from django.http import HttpResponseRedirect
 from django.shortcuts import redirect, render
 from django.views import View
 from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
-from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm
+from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm, NewAdminForm
 from tutorials.helpers import login_prohibited
+from tutorials.models import RequestSession, TutorSubject, User, Match, RequestSessionDay
+from datetime import date
+import calendar as pycalendar
+
 
 
 @login_required
 def dashboard(request):
-    """Display the current user's dashboard."""
-
+    """Display dashboard based on user type."""
     current_user = request.user
-    return render(request, 'dashboard.html', {'user': current_user})
+    context = {'user': current_user}
+
+    if (current_user.is_admin):
+        # Get count of unmatched requests
+        unmatched_count = RequestSession.objects.filter(
+            match__isnull=True
+        ).count()
+        
+        context.update({
+            'unmatched_count': unmatched_count,
+            'is_admin_view': True
+        })
+    else:
+        # Add calendar context for non-admin users
+        context.update(get_calendar_context(current_user))
+
+    return render(request, 'dashboard.html', context)
+
+@login_required
+def calendar_view(request):
+    """Display a full calendar with matched schedules."""
+    current_user = request.user
+
+    # Use the helper function to get calendar context
+    calendar_context = get_calendar_context(current_user)
+
+    # Add additional details for the full calendar view
+    from datetime import date
+    today = date.today()
+    context = {
+        'calendar_month': calendar_context['calendar_month'],
+        'highlighted_dates': calendar_context['highlighted_dates'],
+        'month_name': today.strftime('%B'),
+        'year': today.year,
+    }
+
+    return render(request, 'calendar.html', context)
+
+@login_required
+def admin_requested_sessions(request):
+    if not request.user.is_admin:
+        return redirect('dashboard')
+    
+    # query for unmatched requests, select related performs a join on the student and subject tables to find 
+    unmatched_requests = RequestSession.objects.filter(
+        match__isnull=True
+    ).select_related('student', 'subject')
+    
+    # Create a form for each request
+    requests_with_forms = []
+    for req in unmatched_requests:
+        requests_with_forms.append({
+            'request': req,
+            'form': TutorMatchForm(req)
+        })
+    
+    # Render the admin requested sessions template with the requests and forms
+    return render(request, 'admin_requested_sessions.html', {
+        'requests_with_forms': requests_with_forms,
+        'is_admin_view': True
+    })
+
+@login_required
+def admin_requested_session_highlighted(request, request_id):
+    """Display detailed view of a specific request."""
+    if not request.user.is_admin:
+        return redirect('dashboard')
+
+    # Fetch the specific request session by ID
+    session_request = RequestSession.objects.get(id=request_id)
+    
+    # Initialize form with request data if submitted
+    form = TutorMatchForm(session_request, request.GET or None)
+    
+    selected_tutor = None
+    if form.is_valid():
+        # Get the selected tutor from the form
+        selected_tutor = form.cleaned_data['tutor']
+    
+    # Render the detailed view template with the request, form, and selected tutor
+    return render(request, 'admin_requested_session_highlighted.html', {
+        'request': session_request,
+        'form': form,
+        'selected_tutor': selected_tutor
+    })
+
+@login_required
+def create_match(request, request_id):
+    """Create a match between request and selected tutor."""
+    if not request.user.is_admin:
+        return redirect('dashboard')
+    
+    session = RequestSession.objects.get(id=request_id)
+    
+    if request.method == 'POST':
+        form = TutorMatchForm(session, request.POST)
+        if form.is_valid():
+            try:
+                form.save(request_session=session)
+                messages.success(request, 'Match created successfully')
+                return redirect('admin_requested_sessions')
+            except Exception as e:
+                messages.error(request, f'Error creating match: {str(e)}')
+        else:
+            messages.error(request, 'Invalid form submission')
+        return redirect('admin_requested_session_highlighted', request_id=request_id)
+    
+    return redirect('admin_requested_sessions')
+
+def registerNewAdmin(request):
+    form = None
+    if request.method == "POST":
+       form = NewAdminForm(request.POST) 
+       if form.is_valid():
+            try:
+                user = User.objects.create_user(
+                    form.cleaned_data.get('username'),
+                    first_name=form.cleaned_data.get('first_name'),
+                    last_name=form.cleaned_data.get('last_name'),
+                    email=form.cleaned_data.get('email'),
+                    password=form.cleaned_data.get('new_password'),
+                    user_type = 'admin',
+                )
+                user.save()
+            except:
+                form.add_error(None,"Unable to create")
+            else:
+                path = reverse('dashboard')
+                return HttpResponseRedirect(path)
+
+                   
+    else:
+        form = NewAdminForm()
+    
+    return render(request, 'registerAdmin.html', {'form':form})
+
+
+
 
 
 @login_prohibited
@@ -91,6 +234,46 @@ def log_out(request):
     logout(request)
     return redirect('home')
 
+def get_calendar_context(user):
+    """Generate the calendar context for the user dashboard."""
+    # Define a color palette for different sessions
+    colors = cycle(['#FFD700', '#FF8C00', '#1E90FF', '#32CD32', '#FF69B4', '#7B68EE'])
+
+    # Get the current month and year
+    today = date.today()
+    cal = pycalendar.Calendar(firstweekday=0)
+    calendar_month = cal.monthdayscalendar(today.year, today.month)
+
+    # Fetch all matched sessions for this user
+    matched_sessions = RequestSessionDay.objects.filter(
+        request_session__match__tutor=user,
+        request_session__match__isnull=False  # Ensure there's a match
+    ).select_related('request_session')
+
+    # Dictionary to store color for each session ID
+    session_colors = {}
+    for session in matched_sessions:
+        if session.request_session.id not in session_colors:
+            session_colors[session.request_session.id] = next(colors)
+
+    # Prepare a dictionary of highlighted dates
+    highlighted_dates = {}
+    for session_day in matched_sessions:
+        day_of_week = session_day.day_of_week
+
+        # Find all days of this weekday in the current month
+        for week in calendar_month:
+            if week[day_of_week]:  # if day is not 0, i.e., it exists in the month
+                day = week[day_of_week]
+                if day not in highlighted_dates:
+                    highlighted_dates[day] = []
+                highlighted_dates[day].append(session_colors[session_day.request_session.id])
+
+    # Return the prepared calendar context
+    return {
+        'calendar_month': calendar_month,
+        'highlighted_dates': highlighted_dates,
+    }
 
 class PasswordView(LoginRequiredMixin, FormView):
     """Display password change screen and handle password change requests."""
