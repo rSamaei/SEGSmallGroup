@@ -1,3 +1,5 @@
+from itertools import cycle
+from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout
@@ -11,7 +13,10 @@ from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
 from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm, NewAdminForm
 from tutorials.helpers import login_prohibited
-from tutorials.models import RequestSession, User, Match
+from tutorials.models import RequestSession, TutorSubject, User, Match, RequestSessionDay
+from datetime import date
+import calendar as pycalendar
+
 
 
 @login_required
@@ -32,6 +37,26 @@ def dashboard(request):
         })
 
     return render(request, 'dashboard.html', context)
+
+@login_required
+def calendar_view(request):
+    """Display a full calendar with matched schedules."""
+    current_user = request.user
+
+    # Use the helper function to get calendar context
+    calendar_context = get_calendar_context(current_user)
+
+    # Add additional details for the full calendar view
+    from datetime import date
+    today = date.today()
+    context = {
+        'calendar_month': calendar_context['calendar_month'],
+        'highlighted_dates': calendar_context['highlighted_dates'],
+        'month_name': today.strftime('%B'),
+        'year': today.year,
+    }
+
+    return render(request, 'calendar.html', context)
 
 @login_required
 def admin_requested_sessions(request):
@@ -103,7 +128,6 @@ def create_match(request, request_id):
         return redirect('admin_requested_session_highlighted', request_id=request_id)
     
     return redirect('admin_requested_sessions')
-
 
 def registerNewAdmin(request):
     form = None
@@ -207,6 +231,46 @@ def log_out(request):
     logout(request)
     return redirect('home')
 
+def get_calendar_context(user):
+    """Generate the calendar context for the user dashboard."""
+    # Define a color palette for different sessions
+    colors = cycle(['#FFD700', '#FF8C00', '#1E90FF', '#32CD32', '#FF69B4', '#7B68EE'])
+
+    # Get the current month and year
+    today = date.today()
+    cal = pycalendar.Calendar(firstweekday=0)
+    calendar_month = cal.monthdayscalendar(today.year, today.month)
+
+    # Fetch all matched sessions for this user
+    matched_sessions = RequestSessionDay.objects.filter(
+        request_session__match__tutor=user,
+        request_session__match__isnull=False  # Ensure there's a match
+    ).select_related('request_session')
+
+    # Dictionary to store color for each session ID
+    session_colors = {}
+    for session in matched_sessions:
+        if session.request_session.id not in session_colors:
+            session_colors[session.request_session.id] = next(colors)
+
+    # Prepare a dictionary of highlighted dates
+    highlighted_dates = {}
+    for session_day in matched_sessions:
+        day_of_week = session_day.day_of_week
+
+        # Find all days of this weekday in the current month
+        for week in calendar_month:
+            if week[day_of_week]:  # if day is not 0, i.e., it exists in the month
+                day = week[day_of_week]
+                if day not in highlighted_dates:
+                    highlighted_dates[day] = []
+                highlighted_dates[day].append(session_colors[session_day.request_session.id])
+
+    # Return the prepared calendar context
+    return {
+        'calendar_month': calendar_month,
+        'highlighted_dates': highlighted_dates,
+    }
 
 class PasswordView(LoginRequiredMixin, FormView):
     """Display password change screen and handle password change requests."""

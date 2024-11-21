@@ -113,3 +113,79 @@ h3.profile-title {
   text-decoration: underline;
   color: #0d6efd;
 }
+
+/* Space between the title (h2) and the calendar */
+.col-md-4 h2 {
+  margin-bottom: 20px; /* Adjust this value to increase or decrease the space */
+}
+
+/* Space between the calendar and the button */
+.col-md-4 .btn {
+  margin-top: 20px !important; /* Ensure this margin overrides Bootstrap's mt-3 */
+}
+
+.mini-calendar-table {
+  width: 100%; /* Make the mini calendar take the full width of its container */
+  border-collapse: collapse; /* Merge table borders */
+}
+
+.mini-calendar-table th,
+.mini-calendar-table td {
+  border: 1px solid #ddd; /* Light border for cells */
+  text-align: center; /* Center text */
+  padding: 7px; /* Smaller spacing for mini-calendar */
+}
+
+.mini-calendar-table th {
+  background-color: #f2f2f2; /* Light grey background for headers */
+  font-weight: bold; /* Make headers bold */
+}
+
+.mini-calendar-table td {
+  background-color: #fff; /* Default background */
+}
+
+.mini-calendar-table td.highlighted-day {
+  background-color: #ffc107; /* Highlight for matched dates (yellow) */
+  color: #000; /* Ensure readable text */
+}
+
+.mini-calendar-table td:hover {
+  background-color: #f0f8ff; /* Slight highlight on hover */
+  cursor: pointer; /* Change cursor to pointer */
+}
+
+.full-calendar-table {
+  margin: 60px auto; /* Center the table horizontally */
+  border-collapse: collapse; /* Merge table borders */
+}
+
+.full-calendar-table th,
+.full-calendar-table td {
+  border: 1px solid #ddd; /* Add borders to cells */
+  text-align: center; /* Center-align text */
+  padding: 0; /* Remove extra padding */
+  width: 80px; /* Fixed width for cells */
+  height: 60px; /* Fixed height for cells */
+  box-sizing: border-box; /* Ensure padding and borders are included in dimensions */
+}
+
+.full-calendar-table th {
+  background-color: #f2f2f2; /* Light grey background for headers */
+  font-weight: bold; /* Bold headers */
+}
+
+.full-calendar-table td {
+  background-color: #fff; /* Default background */
+  vertical-align: middle; /* Center align text vertically */
+}
+
+.full-calendar-table td.highlighted-day {
+  background-color: #ffc107; /* Highlighted for matched dates (yellow) */
+  color: #000; /* Ensure readable text */
+}
+
+.full-calendar-table td:hover {
+  background-color: #f0f8ff; /* Slight highlight on hover */
+  cursor: pointer; /* Change cursor to pointer */
+}

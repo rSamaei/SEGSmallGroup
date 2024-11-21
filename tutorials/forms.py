@@ -2,7 +2,9 @@
 from django import forms
 from django.contrib.auth import authenticate
 from django.core.validators import RegexValidator
-from .models import User, Match, RequestSession
+
+from django.forms import Select
+from .models import User, Match, RequestSession, RequestSessionDay
 
 class LogInForm(forms.Form):
     """Form enabling registered users to log in."""
@@ -109,7 +111,6 @@ class SignUpForm(NewPasswordMixin, forms.ModelForm):
         )
         return user
 
-
 class TutorMatchForm(forms.Form):
     """
     A form for matching tutors with request sessions based on subject and proficiency.
@@ -162,3 +163,33 @@ class NewAdminForm(NewPasswordMixin, forms.ModelForm):
 
         model = User
         fields = ['first_name', 'last_name', 'username', 'email']
+
+
+class RequestSessionForm(forms.ModelForm):
+    """Form for creating or updating RequestSession with multiple days."""
+
+    days = forms.MultipleChoiceField(
+        choices=[
+            ('Monday', 'Monday'),
+            ('Tuesday', 'Tuesday'),
+            ('Wednesday', 'Wednesday'),
+            ('Thursday', 'Thursday'),
+            ('Friday', 'Friday'),
+        ],
+        widget=forms.CheckboxSelectMultiple
+    )
+
+    class Meta:
+        model = RequestSession
+        fields = ['subject', 'proficiency', 'days']
+        widgets = {
+            'frequency': Select(attrs={'class': 'form-select'}),
+        }
+
+    def save_days(self, request_session, days):
+        """Save the selected days to the RequestSessionDay model."""
+        # Clear existing days
+        RequestSessionDay.objects.filter(request_session=request_session).delete()
+        # Add new days
+        for day in days:
+            RequestSessionDay.objects.create(request_session=request_session, day_of_week=day)

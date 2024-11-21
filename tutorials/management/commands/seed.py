@@ -1,10 +1,12 @@
 from django.core.management.base import BaseCommand, CommandError
 
-from tutorials.models import User, Subject, RequestSession, Match, TutorSubject
+from tutorials.models import User, Subject, RequestSession, Match, TutorSubject, RequestSessionDay
 
 import pytz
 from faker import Faker
-from random import randint, choice
+from random import randint, choice, sample
+
+DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 
 # addded user_type to these
 user_fixtures = [
@@ -90,13 +92,27 @@ class Command(BaseCommand):
             for _ in range(randint(1, 3)):  # fill the database with each student requesting 1 to 3 subjects
                 subject = choice(subjects)
                 proficiency = choice(['Beginner', 'Intermediate', 'Advanced'])
-                frequency = randint(1, 5)
+                frequency = choice([0.5, 1.0, 2.0])
                 # if the student requesting that subject hasn't already been generated create it 
-                RequestSession.objects.get_or_create(
+                request_session, created = RequestSession.objects.get_or_create(
                     student=student,
                     subject=subject,
                     defaults={'proficiency': proficiency, 'frequency': frequency}
                 )
+                if created:
+                    if frequency == 0.5 or frequency == 1.0:  # Fortnightly / Weekly
+                        day = choice(DAYS_OF_WEEK)
+                        RequestSessionDay.objects.create(
+                            request_session=request_session,
+                            day_of_week=day
+                        )
+                    elif frequency == 2.0:  # Biweekly
+                        days = sample(DAYS_OF_WEEK, k=2)  # Select two different days
+                        for day in days:
+                            RequestSessionDay.objects.create(
+                                request_session=request_session,
+                                day_of_week=day
+                            )
         print("Request sessions seeded.")
 
     def create_tutor_subjects(self):

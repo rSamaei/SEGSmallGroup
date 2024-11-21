@@ -79,9 +79,15 @@ class RequestSession(models.Model):
         ('Advanced', 'Advanced'),
     )
 
+    FREQUENCY_CHOICES = (
+        (0.5, 'Fortnightly'),
+        (1, 'Weekly'),
+        (2, 'Biweekly'),
+    )
+
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='requests')
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
-    frequency = models.PositiveIntegerField(default=1)  # Added default=1 for once per week
+    frequency = models.DecimalField(max_digits=2, decimal_places=1, default=1.0)  # Added default=1 for once per week
     proficiency = models.CharField(max_length=12, choices=PROFICIENCY_TYPES, default='Beginner')
     date_requested = models.DateTimeField(auto_now_add=True)
 
@@ -91,6 +97,28 @@ class RequestSession(models.Model):
     def __str__(self):
         return f"{self.student.username} - {self.subject.name}"
     
+class RequestSessionDay(models.Model):
+    """Model to represent days associated with a RequestSession."""
+    request_session = models.ForeignKey(
+        RequestSession,
+        on_delete=models.CASCADE,
+        related_name='days'
+    )
+    day_of_week = models.CharField(
+        max_length=15,
+        choices=[
+            ('Monday', 'Monday'),
+            ('Tuesday', 'Tuesday'),
+            ('Wednesday', 'Wednesday'),
+            ('Thursday', 'Thursday'),
+            ('Friday', 'Friday'),
+        ]
+    )
+
+    def __str__(self):
+        return f"{self.request_session} on {self.day_of_week}"
+
+
 class Match(models.Model):
     """Model for matching requests to tutors"""
 
