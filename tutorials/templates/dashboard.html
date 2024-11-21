@@ -5,25 +5,27 @@
     <div class="col-12">
       <h1>Welcome to your dashboard {{ user.username }}</h1>
     </div>
-    <div>
-      <table class="table table-bordered table-dark">
-       <thead class="thead-dark">
-         <tr>
-           <th scope="col">Subject</th>
-           <th scope="col">Proficiency</th>
-           <th scope="col">Frequency</th>
-           <th scope="col">Date</th>
-         </tr>
-       </thead>
-     {% for request in requests %}
-     <tr>
-       <td>{{request.subject}}</td>
-       <td>{{request.prof}}</td>
-       <td>{{request.freq}}</td>
-       <td>{{request.date}}</td>
-     </tr>
-       {% endfor %}
-       
+      {% if is_admin_view %}
+          <h2>Admin Dashboard</h2>
+          <div class="col-md-4">
+              <div class="card mb-3">
+                  <div class="card-body">
+                      <h5 class="card-title">Unmatched Requests</h5>
+                      <p class="card-text">
+                          <span class="h2">{{ unmatched_count }}</span>
+                          <br>
+                          pending requests
+                      </p>
+                      <a href="{% url 'admin_requested_sessions' %}" class="btn btn-primary">
+                          View All Requests
+                      </a>
+                  </div>
+              </div>
+          </div>
+      {% else %}
+          <h2>User Dashboard</h2>
+          <!-- we can do this for tutor and students -->
+      {% endif %}
    </table> 
    <p>{{message}}</p>
    </div>

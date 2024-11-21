@@ -2,7 +2,7 @@
 from django import forms
 from django.contrib.auth import authenticate
 from django.core.validators import RegexValidator
-from .models import User
+from .models import User, Match, RequestSession
 
 class LogInForm(forms.Form):
     """Form enabling registered users to log in."""
@@ -109,6 +109,51 @@ class SignUpForm(NewPasswordMixin, forms.ModelForm):
         )
         return user
 
+
+class TutorMatchForm(forms.Form):
+    """
+    A form for matching tutors with request sessions based on subject and proficiency.
+    This form provides a single ModelChoiceField for selecting a tutor from a filtered
+    queryset of users who:
+        1. Have the user type 'tutor'
+        2. Match the subject of the request session
+        3. Match the proficiency level of the request session
+    Attributes:
+        tutor (ModelChoiceField): A dropdown field for selecting a tutor with 
+            Bootstrap styling.
+    Args:
+        request_session: The session request object containing subject and 
+            proficiency requirements.
+    """
+    tutor = forms.ModelChoiceField(
+        queryset=None,
+        widget=forms.Select(attrs={'class': 'form-select mb-3'})
+    )
+
+    def __init__(self, request_session: RequestSession, *args, **kwargs) -> None:
+        """Initialize form with filtered tutor queryset based on request requirements."""
+        # Call parent class initialization
+        super().__init__(*args, **kwargs)
+        
+        # Filter tutors based on:
+        # 1. Must be a tutor type user
+        # 2. Must teach the requested subject
+        # 3. Must have required proficiency level
+        self.fields['tutor'].queryset = User.objects.filter(
+            user_type='tutor',  # Only get tutor users
+            tutor_subjects__subject=request_session.subject,  # Match subject
+            tutor_subjects__proficiency=request_session.proficiency  # Match proficiency
+        ).distinct()  # Remove duplicates if tutor teaches multiple subjects
+
+    def save(self, request_session: RequestSession) -> Match:
+        """Save the match to the database."""
+        tutor = self.cleaned_data['tutor']
+        match = Match.objects.create(
+            request_session=request_session,
+            tutor=tutor
+        )
+        return match
+      
 class NewAdminForm(NewPasswordMixin, forms.ModelForm):
     """Form to create new admin."""
 

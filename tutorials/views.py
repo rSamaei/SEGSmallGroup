@@ -9,25 +9,100 @@ from django.shortcuts import redirect, render
 from django.views import View
 from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
-from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, NewAdminForm
+from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm, NewAdminForm
 from tutorials.helpers import login_prohibited
-from tutorials.models import RequestSession, User
+from tutorials.models import RequestSession, User, Match
 
 
 @login_required
 def dashboard(request):
-    """Display the current user's dashboard."""
+    """Display dashboard based on user type."""
     current_user = request.user
-    list = []
-    for e in RequestSession.objects.all():
-        if e.student == current_user:
-            tempDict = {'subject':e.subject.name,'prof':e.proficiency,'freq':e.frequency,'date':e.date_requested.strftime('%d/%m/%Y')}
-            list.append(tempDict)
-    noRequestMessage = ''
-    if len(list) == 0:
-        noRequestMessage = 'No requests were found'
+    context = {'user': current_user}
 
-    return render(request, 'dashboard.html', {'user': current_user, 'requests':list, 'message':noRequestMessage})
+    if (current_user.is_admin):
+        # Get count of unmatched requests
+        unmatched_count = RequestSession.objects.filter(
+            match__isnull=True
+        ).count()
+        
+        context.update({
+            'unmatched_count': unmatched_count,
+            'is_admin_view': True
+        })
+
+    return render(request, 'dashboard.html', context)
+
+@login_required
+def admin_requested_sessions(request):
+    if not request.user.is_admin:
+        return redirect('dashboard')
+    
+    # query for unmatched requests, select related performs a join on the student and subject tables to find 
+    unmatched_requests = RequestSession.objects.filter(
+        match__isnull=True
+    ).select_related('student', 'subject')
+    
+    # Create a form for each request
+    requests_with_forms = []
+    for req in unmatched_requests:
+        requests_with_forms.append({
+            'request': req,
+            'form': TutorMatchForm(req)
+        })
+    
+    # Render the admin requested sessions template with the requests and forms
+    return render(request, 'admin_requested_sessions.html', {
+        'requests_with_forms': requests_with_forms,
+        'is_admin_view': True
+    })
+
+@login_required
+def admin_requested_session_highlighted(request, request_id):
+    """Display detailed view of a specific request."""
+    if not request.user.is_admin:
+        return redirect('dashboard')
+
+    # Fetch the specific request session by ID
+    session_request = RequestSession.objects.get(id=request_id)
+    
+    # Initialize form with request data if submitted
+    form = TutorMatchForm(session_request, request.GET or None)
+    
+    selected_tutor = None
+    if form.is_valid():
+        # Get the selected tutor from the form
+        selected_tutor = form.cleaned_data['tutor']
+    
+    # Render the detailed view template with the request, form, and selected tutor
+    return render(request, 'admin_requested_session_highlighted.html', {
+        'request': session_request,
+        'form': form,
+        'selected_tutor': selected_tutor
+    })
+
+@login_required
+def create_match(request, request_id):
+    """Create a match between request and selected tutor."""
+    if not request.user.is_admin:
+        return redirect('dashboard')
+    
+    session = RequestSession.objects.get(id=request_id)
+    
+    if request.method == 'POST':
+        form = TutorMatchForm(session, request.POST)
+        if form.is_valid():
+            try:
+                form.save(request_session=session)
+                messages.success(request, 'Match created successfully')
+                return redirect('admin_requested_sessions')
+            except Exception as e:
+                messages.error(request, f'Error creating match: {str(e)}')
+        else:
+            messages.error(request, 'Invalid form submission')
+        return redirect('admin_requested_session_highlighted', request_id=request_id)
+    
+    return redirect('admin_requested_sessions')
 
 
 def registerNewAdmin(request):

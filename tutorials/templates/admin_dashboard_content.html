@@ -1,0 +1,20 @@
+{% for item in requests_with_tutors %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">Request Details</h5>
+            <p class="card-text">Student: {{ item.request.student.username }}</p>
+            <p class="card-text">Subject: {{ item.request.subject.name }}</p>
+            <p>Proficiency: {{ item.request.proficiency }}</p>
+            
+            <form method="post" action="{% url 'create_match' item.request.id %}">
+                {% csrf_token %}
+                <select class="form-select" name="tutor_id">
+                    {% for tutor in item.eligible_tutors %}
+                        <option value="{{ tutor.id }}">{{ tutor.username }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-primary">Create Match</button>
+            </form>
+        </div>
+    </div>
+{% endfor %}
