@@ -14,7 +14,7 @@ from django.urls import reverse
 from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm, NewAdminForm
 from tutorials.helpers import login_prohibited
 from tutorials.models import RequestSession, TutorSubject, User, Match, RequestSessionDay
-from datetime import date
+from datetime import date, timedelta
 import calendar as pycalendar
 
 
@@ -50,17 +50,29 @@ def calendar_view(request):
     """Display a full calendar with matched schedules."""
     current_user = request.user
 
-    # Use the helper function to get calendar context
-    calendar_context = get_calendar_context(current_user)
+    # Get month and year from request parameters
+    month = int(request.GET.get('month', date.today().month))
+    year = int(request.GET.get('year', date.today().year))
 
-    # Add additional details for the full calendar view
-    from datetime import date
-    today = date.today()
+    # Use the helper function to get calendar context
+    calendar_context = get_calendar_context(current_user, month, year)
+
+    # Calculate previous and next month
+    prev_month = month - 1 if month > 1 else 12
+    prev_year = year if month > 1 else year - 1
+    next_month = month + 1 if month < 12 else 1
+    next_year = year if month < 12 else year + 1
+
     context = {
         'calendar_month': calendar_context['calendar_month'],
         'highlighted_dates': calendar_context['highlighted_dates'],
-        'month_name': today.strftime('%B'),
-        'year': today.year,
+        'sessions': calendar_context['sessions'],
+        'month_name': date(year, month, 1).strftime('%B'),
+        'year': year,
+        'prev_month': prev_month,
+        'prev_year': prev_year,
+        'next_month': next_month,
+        'next_year': next_year,
     }
 
     return render(request, 'calendar.html', context)
@@ -250,45 +262,85 @@ def log_out(request):
     logout(request)
     return redirect('home')
 
-def get_calendar_context(user):
-    """Generate the calendar context for the user dashboard."""
-    # Define a color palette for different sessions
-    colors = cycle(['#FFD700', '#FF8C00', '#1E90FF', '#32CD32', '#FF69B4', '#7B68EE'])
+def get_recurring_dates(session, year, month):
+    """Generate recurring dates based on session frequency and term."""
+    dates = []
+    
+    # Get start and end of current month
+    month_start = date(year, month, 1)
+    month_end = date(year, month + 1, 1) - timedelta(days=1) if month < 12 else date(year + 1, 1, 1) - timedelta(days=1)
+    print(month_start, month_end)
 
-    # Get the current month and year
-    today = date.today()
-    cal = pycalendar.Calendar(firstweekday=0)
-    calendar_month = cal.monthdayscalendar(today.year, today.month)
+    request_date = session.date_requested
+    
+    # calculate academic year dates based on request_date
+    if 9 <= request_date.month <= 12:
+        academic_year_start = date(request_date.year, 9, 1)
+        academic_year_end = date(request_date.year + 1, 7, 20)
+        term_dates = [
+            (date(request_date.year, 9, 1), date(request_date.year, 12, 20)),  # Autumn
+            (date(request_date.year + 1, 1, 4), date(request_date.year + 1, 3, 31)),  # Spring
+            (date(request_date.year + 1, 4, 15), date(request_date.year + 1, 7, 20))  # Summer
+        ]
+    else:
+        academic_year_start = date(request_date.year - 1, 9, 1)
+        academic_year_end = date(request_date.year, 7, 20)
+        term_dates = [
+            (date(request_date.year - 1, 9, 1), date(request_date.year - 1, 12, 20)),  # Autumn
+            (date(request_date.year, 1, 4), date(request_date.year, 3, 31)),  # Spring
+            (date(request_date.year, 4, 15), date(request_date.year, 7, 20))  # Summer
+        ]
+    
+    # Get session days
+    session_days = [day.day_of_week for day in session.days.all()]
 
-    # Fetch all matched sessions for this user
-    matched_sessions = RequestSessionDay.objects.filter(
-        request_session__match__tutor=user,
-        request_session__match__isnull=False  # Ensure there's a match
-    ).select_related('request_session')
+    current = month_start
+    while current <= min(academic_year_end, month_end):
+        in_term = any(term_start <= current <= term_end for term_start, term_end in term_dates)
+        
+        if in_term and pycalendar.day_name[current.weekday()] in session_days:
+            dates.append(current.day)
+        current += timedelta(days=1)
+    
+    """so basically the dates are being added as the actual number days
+        so if the date is 2022-01-01, the day is being added as 1
+        calendar will then cycle through the calendar which is just a table with numbers and add it in if the number is the same"""
 
-    # Dictionary to store color for each session ID
-    session_colors = {}
-    for session in matched_sessions:
-        if session.request_session.id not in session_colors:
-            session_colors[session.request_session.id] = next(colors)
+    return dates
 
-    # Prepare a dictionary of highlighted dates
-    highlighted_dates = {}
-    for session_day in matched_sessions:
-        day_of_week = session_day.day_of_week
+def get_calendar_context(user, month=None, year=None):
+    """Get calendar context for the user."""
+    if month is None:
+        month = date.today().month
+    if year is None:
+        year = date.today().year
+    
+    # Filter sessions based on user type
+    if user.user_type == 'student':
+        sessions = RequestSession.objects.filter(
+            student=user,
+            match__isnull=False
+        ).select_related('match', 'subject', 'match__tutor').prefetch_related('days')
+    elif user.user_type == 'tutor':
+        sessions = RequestSession.objects.filter(
+            match__tutor=user
+        ).select_related('match', 'subject', 'student').prefetch_related('days')
+    else:
+        sessions = RequestSession.objects.filter(
+            match__isnull=False
+        ).select_related('match', 'subject', 'student', 'match__tutor').prefetch_related('days')
 
-        # Find all days of this weekday in the current month
-        for week in calendar_month:
-            if week[day_of_week]:  # if day is not 0, i.e., it exists in the month
-                day = week[day_of_week]
-                if day not in highlighted_dates:
-                    highlighted_dates[day] = []
-                highlighted_dates[day].append(session_colors[session_day.request_session.id])
-
-    # Return the prepared calendar context
+    # Get recurring dates for each session
+    highlighted_dates = set()
+    for session in sessions:
+        recurring_dates = get_recurring_dates(session, year, month)
+        session.recurring_dates = recurring_dates  # Add to session object
+        highlighted_dates.update(recurring_dates)
+    
     return {
-        'calendar_month': calendar_month,
+        'calendar_month': pycalendar.monthcalendar(year, month),
         'highlighted_dates': highlighted_dates,
+        'sessions': sessions
     }
 
 class PasswordView(LoginRequiredMixin, FormView):

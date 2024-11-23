@@ -89,7 +89,7 @@ class RequestSession(models.Model):
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     frequency = models.DecimalField(max_digits=2, decimal_places=1, default=1.0)  # Added default=1 for once per week
     proficiency = models.CharField(max_length=12, choices=PROFICIENCY_TYPES, default='Beginner')
-    date_requested = models.DateTimeField(auto_now_add=True)
+    date_requested = models.DateField()  # Change from DateTimeField to DateField
 
     class Meta:
         unique_together = ('student', 'subject')
@@ -99,11 +99,7 @@ class RequestSession(models.Model):
     
 class RequestSessionDay(models.Model):
     """Model to represent days associated with a RequestSession."""
-    request_session = models.ForeignKey(
-        RequestSession,
-        on_delete=models.CASCADE,
-        related_name='days'
-    )
+    request_session = models.ForeignKey(RequestSession, on_delete=models.CASCADE, related_name='days')
     day_of_week = models.CharField(
         max_length=15,
         choices=[
