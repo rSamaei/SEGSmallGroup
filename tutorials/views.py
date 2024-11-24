@@ -31,9 +31,13 @@ def dashboard(request):
             match__isnull=True
         ).count()
         
+        #Get information for the users box
+        total_users_count = User.objects.count()
+
         context.update({
             'unmatched_count': unmatched_count,
-            'is_admin_view': True
+            'is_admin_view': True,
+            'total_users_count': total_users_count,
         })
     else:
         # Add calendar context for non-admin users
@@ -60,6 +64,18 @@ def calendar_view(request):
     }
 
     return render(request, 'calendar.html', context)
+
+@login_required
+def view_all_users(request):
+    """Display all users in a separate page."""
+    current_user = request.user
+    if not current_user.is_admin:
+        # Redirect to dashboard if the user is not an admin
+        return redirect('dashboard')
+
+    all_users = User.objects.all()
+    context = {'all_users': all_users}
+    return render(request, 'view_all_users.html', context)
 
 @login_required
 def admin_requested_sessions(request):
