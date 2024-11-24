@@ -272,7 +272,13 @@ def get_recurring_dates(session, year, month):
     print(month_start, month_end)
 
     request_date = session.date_requested
-    
+    if(session.frequency == 2.0):
+        interlude = 1
+    else:
+        interlude = int(7 / session.frequency)
+    print(session.frequency)
+    print(interlude)
+
     # calculate academic year dates based on request_date
     if 9 <= request_date.month <= 12:
         academic_year_start = date(request_date.year, 9, 1)
@@ -294,13 +300,17 @@ def get_recurring_dates(session, year, month):
     # Get session days
     session_days = [day.day_of_week for day in session.days.all()]
 
-    current = month_start
+    # current = month_start
+    current = academic_year_start
     while current <= min(academic_year_end, month_end):
         in_term = any(term_start <= current <= term_end for term_start, term_end in term_dates)
-        
-        if in_term and pycalendar.day_name[current.weekday()] in session_days:
-            dates.append(current.day)
-        current += timedelta(days=1)
+
+        if in_term and pycalendar.day_name[current.weekday()] in session_days and current.month == month:
+            print(pycalendar.day_name[current.weekday()], ", session days: ", session_days)
+            dates.append(current.day + 1)
+            current += timedelta(days=interlude)
+        else:
+            current += timedelta(days=1)
     
     """so basically the dates are being added as the actual number days
         so if the date is 2022-01-01, the day is being added as 1
