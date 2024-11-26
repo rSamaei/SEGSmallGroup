@@ -17,21 +17,19 @@ from tutorials.models import RequestSession, TutorSubject, User, Match, RequestS
 from datetime import date, timedelta
 import calendar as pycalendar
 
-
-
 @login_required
 def dashboard(request):
     """Display dashboard based on user type."""
     current_user = request.user
     context = {'user': current_user}
 
-    if (current_user.is_admin):
+    if current_user.is_admin:
         # Get count of unmatched requests
         unmatched_count = RequestSession.objects.filter(
             match__isnull=True
         ).count()
-        
-        #Get information for the users box
+
+        # Get information for the users box
         total_users_count = User.objects.count()
 
         context.update({
@@ -40,8 +38,18 @@ def dashboard(request):
             'total_users_count': total_users_count,
         })
     else:
+        # Get the count of the current user's unmatched requests
+        unmatched_student_requests = RequestSession.objects.filter(
+            student=current_user,
+            match__isnull=True
+        ).count()
+
         # Add calendar context for non-admin users
         context.update(get_calendar_context(current_user))
+        context.update({
+            'unmatched_student_requests': unmatched_student_requests,
+            'is_student_view': current_user.is_student,
+        })
 
     return render(request, 'dashboard.html', context)
 
@@ -76,6 +84,26 @@ def calendar_view(request):
     }
 
     return render(request, 'calendar.html', context)
+
+@login_required
+def student_view_unmatched_requests(request):
+    """Display unmatched requests for the logged-in student."""
+    current_user = request.user
+
+    # Ensure the user is a student
+    if not current_user.is_student:
+        return redirect('dashboard')  # Redirect non-students to their dashboard
+
+    unmatched_requests = RequestSession.objects.filter(
+        student=current_user,
+        match__isnull=True
+    )
+
+    context = {
+        'unmatched_requests': unmatched_requests
+    }
+    return render(request, 'student_view_unmatched_requests.html', context)
+
 
 @login_required
 def view_all_users(request):
