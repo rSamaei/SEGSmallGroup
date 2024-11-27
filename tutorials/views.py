@@ -11,10 +11,12 @@ from django.shortcuts import redirect, render
 from django.views import View
 from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
-from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm, NewAdminForm
+from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm, NewAdminForm, SelectTutorForInvoice
 from tutorials.helpers import login_prohibited
 from tutorials.models import RequestSession, TutorSubject, User, Match, RequestSessionDay
 from datetime import date
+
+from collections import defaultdict
 import calendar as pycalendar
 
 
@@ -132,6 +134,7 @@ def create_match(request, request_id):
     
     return redirect('admin_requested_sessions')
 
+@login_required
 def registerNewAdmin(request):
     form = None
     if request.method == "POST":
@@ -158,6 +161,46 @@ def registerNewAdmin(request):
         form = NewAdminForm()
     
     return render(request, 'registerAdmin.html', {'form':form})
+
+
+
+@login_required
+def invoice(request):
+    form = None
+    if request.method == "GET":
+        form = SelectTutorForInvoice(request.GET)
+        if form.is_valid():
+            selectedTutor = form.cleaned_data.get('tutor')
+            name = selectedTutor.first_name
+            allMatches = Match.objects.filter(
+                tutor = selectedTutor
+            )
+            count = allMatches.count()
+            listOfSessions = None
+            if count > 0:
+                listOfSessions = []
+                for match in allMatches:
+                    listOfSessions.append(match.request_session)
+            
+
+            context = {'form' : form, 'name':name, 'count':count, 'request_sessions':listOfSessions}
+            return render(request, 'invoice.html', context)
+        else:
+            form = SelectTutorForInvoice()
+            context = {'form' : form, 'name':'', 'count':'', 'request_sessions':None}
+            return render(request, 'invoice.html', context)
+
+
+    else:
+        form = SelectTutorForInvoice()
+        context = {'form' : form, 'name':'', 'count':'', 'request_sessions':None}
+        return render(request, 'invoice.html', context)
+    
+    
+    
+
+
+
 
 
 

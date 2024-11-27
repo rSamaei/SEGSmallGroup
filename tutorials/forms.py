@@ -165,6 +165,16 @@ class NewAdminForm(NewPasswordMixin, forms.ModelForm):
         fields = ['first_name', 'last_name', 'username', 'email']
 
 
+class SelectTutorForInvoice(forms.Form):
+    tutor = forms.ModelChoiceField(queryset=None, empty_label="Unselected",widget=forms.Select(attrs={'class': 'form-select mb-3'}))
+
+    def __init__(self , *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        matched_user_ids = Match.objects.values_list('tutor_id', flat=True)
+        self.fields['tutor'].queryset = User.objects.filter(id__in=matched_user_ids).distinct()
+
+
+
 class RequestSessionForm(forms.ModelForm):
     """Form for creating or updating RequestSession with multiple days."""
 
