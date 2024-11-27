@@ -100,5 +100,23 @@
 </div>
 {% endif %}
 
+{% if is_tutor_view %}
+<!-- View Tutor Subjects  -->
+<div class="col-md-4">
+  <div class="card mb-3">
+      <div class="card-body">
+          <h5 class="card-title">View Subjects</h5>
+          <p class="card-text">
+              <span class="h2">{{ total_subjects_count }}</span>
+              <br>
+              subjects available to teach
+          </p>
+          <a href="{% url 'view_all_tutor_subjects' %}" class="btn btn-primary">
+              View All Subjects
+          </a>
+      </div>
+  </div>
+</div>
+{% endif %}
 
 {% endblock %}

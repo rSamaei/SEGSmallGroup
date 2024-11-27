@@ -37,6 +37,16 @@ def dashboard(request):
             'is_admin_view': True,
             'total_users_count': total_users_count,
         })
+
+    if current_user.is_tutor:
+        # Get count of the tutor's subject availability
+        total_subjects_count = TutorSubject.objects.filter(tutor=current_user).count()
+
+        context.update({
+            'total_subjects_count': total_subjects_count,
+            'is_tutor_view': current_user.is_tutor
+        })
+
     else:
         # Get the count of the current user's unmatched requests
         unmatched_student_requests = RequestSession.objects.filter(
@@ -116,6 +126,16 @@ def view_all_users(request):
     all_users = User.objects.all()
     context = {'all_users': all_users}
     return render(request, 'view_all_users.html', context)
+
+def view_all_tutor_subjects(request):
+    # Display all the subjects a tutor is available to teach.
+    current_user = request.user
+    if not current_user.is_tutor:
+        return redirect('dashboard')
+    
+    all_subjects = TutorSubject.objects.filter(tutor=current_user)
+    context = {'all_subjects': all_subjects}
+    return render(request, 'view_all_tutor_subjects.html', context)
 
 @login_required
 def admin_requested_sessions(request):

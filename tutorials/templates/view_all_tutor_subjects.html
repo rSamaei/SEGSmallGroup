@@ -1,0 +1,37 @@
+{% extends 'base_content.html' %}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-12">
+      <h1>All Subjects</h1>
+      <div class="table-responsive">
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th>Tutor ID</th>
+              <th>Tutor Name</th>
+              <th>Subject</th>
+              <th>Proficiency</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for request in all_subjects %}
+              <tr>
+                <td>{{ request.tutor.id}}</td>
+                <td>{{ request.tutor.full_name}}</td>
+                <td>{{ request.subject.name}}</td>
+                <td>{{ request.get_proficiency_display}}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="6" class="text-center">No subjects picked yet.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
