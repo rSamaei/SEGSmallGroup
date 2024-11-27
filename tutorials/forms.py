@@ -174,7 +174,6 @@ class SelectTutorForInvoice(forms.Form):
         self.fields['tutor'].queryset = User.objects.filter(id__in=matched_user_ids).distinct()
 
 
-
 class RequestSessionForm(forms.ModelForm):
     """Form for creating or updating RequestSession with multiple days."""
 

@@ -141,7 +141,9 @@ class Invoice(models.Model):
     """Model used to represent invoices"""
 
     payment = models.DecimalField(max_digits=10, decimal_places=2)
-    matchID = models.ForeignKey(Match, on_delete=models.CASCADE)
+    match = models.ForeignKey(Match, on_delete=models.CASCADE, unique=True)
+    class Meta:
+        abstract = False
 
 
 class TutorSubject(models.Model):
