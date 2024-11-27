@@ -16,6 +16,7 @@ from tutorials.helpers import login_prohibited
 from tutorials.models import RequestSession, TutorSubject, User, Match, RequestSessionDay
 from datetime import date, timedelta
 import calendar as pycalendar
+from .forms import AddTutorSubjectForm
 
 @login_required
 def dashboard(request):
@@ -29,22 +30,29 @@ def dashboard(request):
             match__isnull=True
         ).count()
 
-        # Get information for the users box
+        #Total number of Users
         total_users_count = User.objects.count()
+        #Total number of matched requests
+        matched_requests_count = Match.objects.count()
 
         context.update({
             'unmatched_count': unmatched_count,
             'is_admin_view': True,
             'total_users_count': total_users_count,
+            'matched_requests_count': matched_requests_count,
+
         })
 
-    if current_user.is_tutor:
+    elif current_user.is_tutor:
         # Get count of the tutor's subject availability
         total_subjects_count = TutorSubject.objects.filter(tutor=current_user).count()
+        #Get number of matched requestes for the tutor
+        matched_requests_count = Match.objects.filter(tutor=request.user).count()
 
         context.update({
             'total_subjects_count': total_subjects_count,
-            'is_tutor_view': current_user.is_tutor
+            'is_tutor_view': current_user.is_tutor,
+            'matched_requests_count': matched_requests_count,
         })
 
     else:
@@ -53,15 +61,100 @@ def dashboard(request):
             student=current_user,
             match__isnull=True
         ).count()
+        #Get number of matched requestes for the student
+        matched_requests_count = Match.objects.filter(request_session__student=request.user).count()
 
         # Add calendar context for non-admin users
         context.update(get_calendar_context(current_user))
         context.update({
             'unmatched_student_requests': unmatched_student_requests,
             'is_student_view': current_user.is_student,
+            'matched_requests_count': matched_requests_count,
         })
 
     return render(request, 'dashboard.html', context)
+
+@login_required
+def view_matched_requests(request):
+    """Display a table of matched requests for a tutor, student, or admin."""
+    
+    if request.user.is_admin:
+        # Admin can see all matched requests
+        matched_requests = Match.objects.all()
+    elif request.user.is_tutor:
+        # Tutors can see only the requests where they are the tutor
+        matched_requests = Match.objects.filter(tutor=request.user)
+    else:
+        # Students can see only the requests where they are the student
+        matched_requests = Match.objects.filter(request_session__student=request.user)
+    
+    # Fetch the relevant details to be shown in the table
+    matched_requests_data = [
+        {
+            'tutor': match.tutor.username,
+            'student': match.request_session.student.username,
+            'subject': match.request_session.subject.name,
+            'student_proficiency': match.request_session.proficiency,
+            'date_requested': match.request_session.date_requested,
+            'frequency': match.request_session.frequency,
+        }
+        for match in matched_requests
+    ]
+    
+    return render(request, 'view_matched_requests.html', {'matched_requests_data': matched_requests_data})
+
+@login_required
+def view_all_tutor_subjects(request):
+    # Display all the subjects a tutor is available to teach.
+    current_user = request.user
+    if not current_user.is_tutor:
+        return redirect('dashboard')
+
+    all_subjects = TutorSubject.objects.filter(tutor=current_user)
+
+    if request.method == 'POST':
+        form = AddTutorSubjectForm(request.POST)
+        if form.is_valid():
+            new_subject = form.save(commit=False)
+            # Ensure the tutor field is set to the current user.
+            new_subject.tutor = current_user
+            new_subject.save()
+            messages.success(request, 'New subject added successfully!')
+            return redirect('view_all_tutor_subjects')
+        else:
+            messages.error(request, 'Error adding subject. Please try again.')
+    else:
+        form = AddTutorSubjectForm(initial={'tutor': current_user})
+
+    context = {
+        'all_subjects': all_subjects,
+        'form': form,
+    }
+    return render(request, 'view_all_tutor_subjects.html', context)
+
+@login_required
+def add_new_subject(request):
+    """Display a form to allow tutors to add a new subject."""
+    current_user = request.user
+    if not current_user.is_tutor:
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        form = AddTutorSubjectForm(request.POST)
+        if form.is_valid():
+            new_subject = form.save(commit=False)
+            # Ensure the tutor field is set to the current user
+            new_subject.tutor = current_user
+            new_subject.save()
+            messages.success(request, 'New subject added successfully!')
+            return redirect('view_all_tutor_subjects')
+        else:
+            messages.error(request, 'Error adding subject. Please try again.')
+    else:
+        form = AddTutorSubjectForm(initial={'tutor': current_user})
+
+    context = {'form': form}
+    return render(request, 'add_new_subject.html', context)
 
 @login_required
 def calendar_view(request):
@@ -126,16 +219,6 @@ def view_all_users(request):
     all_users = User.objects.all()
     context = {'all_users': all_users}
     return render(request, 'view_all_users.html', context)
-
-def view_all_tutor_subjects(request):
-    # Display all the subjects a tutor is available to teach.
-    current_user = request.user
-    if not current_user.is_tutor:
-        return redirect('dashboard')
-    
-    all_subjects = TutorSubject.objects.filter(tutor=current_user)
-    context = {'all_subjects': all_subjects}
-    return render(request, 'view_all_tutor_subjects.html', context)
 
 @login_required
 def admin_requested_sessions(request):
@@ -235,10 +318,6 @@ def registerNewAdmin(request):
     
     return render(request, 'registerAdmin.html', {'form':form})
 
-
-
-
-
 @login_prohibited
 def home(request):
     """Display the application's start/home screen."""
@@ -313,13 +392,15 @@ def log_out(request):
 def get_recurring_dates(session, year, month):
     """Generate recurring dates based on session frequency and term."""
     dates = []
-    
+
+    # If session.date_requested is None, use today's date as fallback
+    request_date = session.date_requested or date.today()
+
     # Get start and end of current month
     month_start = date(year, month, 1)
     month_end = date(year, month + 1, 1) - timedelta(days=1) if month < 12 else date(year + 1, 1, 1) - timedelta(days=1)
     print(month_start, month_end)
 
-    request_date = session.date_requested
     if(session.frequency == 2.0):
         interlude = 1
     else:
@@ -359,12 +440,13 @@ def get_recurring_dates(session, year, month):
             current += timedelta(days=interlude)
         else:
             current += timedelta(days=1)
-    
+
     """so basically the dates are being added as the actual number days
         so if the date is 2022-01-01, the day is being added as 1
         calendar will then cycle through the calendar which is just a table with numbers and add it in if the number is the same"""
-
+    
     return dates
+
 
 def get_calendar_context(user, month=None, year=None):
     """Get calendar context for the user."""

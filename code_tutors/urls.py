@@ -37,5 +37,7 @@ urlpatterns = [
     path('view_all_users/', views.view_all_users, name='view_all_users'),
     path('view_all_tutor_subjects/', views.view_all_tutor_subjects, name='view_all_tutor_subjects'),
     path('student/unmatched-requests/', views.student_view_unmatched_requests, name='student_view_unmatched_requests'),
+    path('add-new-subject/', views.add_new_subject, name='add_new_subject'),
+    path('view_matched_requests/', views.view_matched_requests, name='view_matched_requests'),
 ]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

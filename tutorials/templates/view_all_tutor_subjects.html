@@ -18,19 +18,26 @@
           <tbody>
             {% for request in all_subjects %}
               <tr>
-                <td>{{ request.tutor.id}}</td>
-                <td>{{ request.tutor.full_name}}</td>
-                <td>{{ request.subject.name}}</td>
-                <td>{{ request.get_proficiency_display}}</td>
+                <td>{{ request.tutor.id }}</td>
+                <td>{{ request.tutor.full_name }}</td>
+                <td>{{ request.subject.name }}</td>
+                <td>{{ request.get_proficiency_display }}</td>
               </tr>
             {% empty %}
               <tr>
-                <td colspan="6" class="text-center">No subjects picked yet.</td>
+                <td colspan="4" class="text-center">No subjects picked yet.</td>
               </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
+    </div>
+  </div>
+
+  <!-- Button to Add New Subject -->
+  <div class="row mt-5">
+    <div class="col-12 text-center">
+      <a href="{% url 'add_new_subject' %}" class="btn btn-primary">Add a New Subject</a>
     </div>
   </div>
 </div>
