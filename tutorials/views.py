@@ -49,6 +49,7 @@ def dashboard(request):
         #Get number of matched requestes for the tutor
         matched_requests_count = Match.objects.filter(tutor=request.user).count()
 
+        context.update(get_calendar_context(current_user))
         context.update({
             'total_subjects_count': total_subjects_count,
             'is_tutor_view': current_user.is_tutor,

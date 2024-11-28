@@ -24,12 +24,63 @@
             </div>
         </div>
 
+        <!-- View all subjects  -->
+        <div class="col-md-4">
+          <div class="card mb-3">
+            <div class="card-body">
+              <h5 class="card-title">View All Users</h5>
+              <p class="card-text">
+                <span class="h2">{{ total_users_count }}</span><br>
+                users in the system
+              </p>
+              <a href="{% url 'view_all_users' %}" class="btn btn-primary">
+                View All Users
+              </a>
+            </div>
+          </div>
+        </div>        
+
       {% else %}
 
         <!-- Student/Tutor Dashboard -->
         <div class="col-md-8">
           <h2>Dashboard</h2>
-          <!-- Placeholder for other student/tutor-specific features -->
+          <!-- Student  -->
+        {% if is_student_view %}
+        <div class="col-md-4">
+          <div class="card mb-3">
+            <div class="card-body">
+              <h5 class="card-title">Your Unmatched Requests</h5>
+              <p class="card-text">
+                <span class="h2">{{ unmatched_student_requests }}</span><br>
+                unmatched requests
+              </p>
+              <a href="{% url 'student_view_unmatched_requests' %}" class="btn btn-primary">
+                View Your Requests
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tutor  -->
+        {% elif is_tutor_view %}
+        <!-- View Tutor Subjects  -->
+        <div class="col-md-4">
+          <div class="card mb-3">
+            <div class="card-body">
+              <h5 class="card-title">View Subjects</h5>
+              <p class="card-text">
+                <span class="h2">{{ total_subjects_count }}</span>
+                <br>
+                subjects available to teach
+              </p>
+              <a href="{% url 'view_all_tutor_subjects' %}" class="btn btn-primary">
+                View All Subjects
+              </a>
+            </div>
+          </div>
+        </div>
+        {% endif %}
         </div>
         <div class="col-md-4">
           <h2>Mini Calendar</h2>
@@ -64,78 +115,20 @@
           <a href="{% url 'calendar_view' %}" class="btn btn-secondary mt-3">View Full Calendar</a>
         </div>
     {% endif %}
-  </div>
-</div>
-
-
-<!-- Student  -->
-{% if is_student_view %}
-  <div class="col-md-4">
-    <div class="card mb-3">
-      <div class="card-body">
-        <h5 class="card-title">Your Unmatched Requests</h5>
-        <p class="card-text">
-          <span class="h2">{{ unmatched_student_requests }}</span><br>
-          unmatched requests
-        </p>
-        <a href="{% url 'student_view_unmatched_requests' %}" class="btn btn-primary">
-          View Your Requests
-        </a>
+    <!-- Box to show matched requests -->
+    <div class="col-md-4">
+      <div class="card mb-3">
+        <div class="card-body">
+          <h5 class="card-title">Matched Requests</h5>
+          <p class="card-text">
+            <span class="h2">{{ matched_requests_count }}</span><br>
+            total matched requests
+          </p>
+          <a href="{% url 'view_matched_requests' %}" class="btn btn-primary">
+            View Matched Requests
+          </a>
+        </div>
       </div>
-    </div>
-  </div>
-
-<!-- Tutor  -->
-{% elif is_tutor_view %}
-  <!-- View Tutor Subjects  -->
-  <div class="col-md-4">
-    <div class="card mb-3">
-      <div class="card-body">
-        <h5 class="card-title">View Subjects</h5>
-        <p class="card-text">
-          <span class="h2">{{ total_subjects_count }}</span>
-          <br>
-          subjects available to teach
-        </p>
-        <a href="{% url 'view_all_tutor_subjects' %}" class="btn btn-primary">
-          View All Subjects
-        </a>
-      </div>
-    </div>
-  </div>
-
-<!-- Admin  -->
-{% else %}
-  <!-- View All Users Box  -->
-  <div class="col-md-4">
-    <div class="card mb-3">
-      <div class="card-body">
-        <h5 class="card-title">View All Users</h5>
-        <p class="card-text">
-          <span class="h2">{{ total_users_count }}</span><br>
-          users in the system
-        </p>
-        <a href="{% url 'view_all_users' %}" class="btn btn-primary">
-          View All Users
-        </a>
-      </div>
-    </div>
-  </div>
-{% endif %}
-
-<!-- Student, admin, and tutor -->
-<!-- Box to show matched requests -->
-<div class="col-md-4">
-  <div class="card mb-3">
-    <div class="card-body">
-      <h5 class="card-title">Matched Requests</h5>
-      <p class="card-text">
-        <span class="h2">{{ matched_requests_count }}</span><br>
-        total matched requests
-      </p>
-      <a href="{% url 'view_matched_requests' %}" class="btn btn-primary">
-        View Matched Requests
-      </a>
     </div>
   </div>
 </div>
