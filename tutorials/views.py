@@ -413,15 +413,12 @@ def get_recurring_dates(session, year, month):
     # Get start and end of current month
     month_start = date(year, month, 1)
     month_end = date(year, month + 1, 1) - timedelta(days=1) if month < 12 else date(year + 1, 1, 1) - timedelta(days=1)
-    print(month_start, month_end)
 
     request_date = session.date_requested
     if(session.frequency == 2.0):
         interlude = 1
     else:
         interlude = int(7 / session.frequency)
-    print(session.frequency)
-    print(interlude)
 
     # calculate academic year dates based on request_date
     if 9 <= request_date.month <= 12:
@@ -450,7 +447,6 @@ def get_recurring_dates(session, year, month):
         in_term = any(term_start <= current <= term_end for term_start, term_end in term_dates)
 
         if in_term and pycalendar.day_name[current.weekday()] in session_days and current.month == month:
-            print(pycalendar.day_name[current.weekday()], ", session days: ", session_days)
             dates.append(current.day + 1)
             current += timedelta(days=interlude)
         else:
