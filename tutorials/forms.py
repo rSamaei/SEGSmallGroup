@@ -4,7 +4,7 @@ from django.contrib.auth import authenticate
 from django.core.validators import RegexValidator
 
 from django.forms import Select
-from .models import User, Match, RequestSession, RequestSessionDay, TutorSubject, Subject
+from .models import User, Match, RequestSession, RequestSessionDay, TutorSubject, Subject, Frequency
 
 class AddTutorSubjectForm(forms.ModelForm):
     class Meta:
@@ -19,6 +19,24 @@ class AddTutorSubjectForm(forms.ModelForm):
             'subject': 'Subject',
             'proficiency': 'Proficiency Level',
         }
+
+class RequestSessionForm(forms.ModelForm):
+    """Form for students to create a new session request."""
+    
+    # Override frequency field to use readable choices
+    frequency = forms.ChoiceField(
+        choices=[(key, value) for key, value in Frequency.FREQUENCY_CHOICES.items()],
+        label="Frequency",
+    )
+
+    class Meta:
+        model = RequestSession
+        fields = ['subject', 'proficiency', 'frequency']
+        widgets = {
+            'proficiency': forms.Select(choices=RequestSession.PROFICIENCY_TYPES),
+        }
+
+    
 
 
 class LogInForm(forms.Form):

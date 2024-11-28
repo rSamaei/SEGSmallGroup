@@ -80,10 +80,10 @@ class RequestSession(models.Model):
     )
 
     FREQUENCY_CHOICES = (
+        (0.25, 'Monthly'),
         (0.5, 'Fortnightly'),
         (1, 'Weekly'),
-        (2, 'Biweekly'),
-        (4, 'Monthly'),
+        (2, 'Biweekly'), 
     )
 
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='requests')
@@ -97,6 +97,10 @@ class RequestSession(models.Model):
 
     def __str__(self):
         return f"{self.student.username} - {self.subject.name}"
+    
+    def get_frequency_display(self):
+        """Return human-readable frequency."""
+        return Frequency.to_string(float(self.frequency))
 
 
 

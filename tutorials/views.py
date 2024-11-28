@@ -11,12 +11,13 @@ from django.shortcuts import redirect, render, get_object_or_404
 from django.views import View
 from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
-from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm, NewAdminForm
+from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm, NewAdminForm, RequestSessionForm
 from tutorials.helpers import login_prohibited
 from tutorials.models import RequestSession, TutorSubject, User, Match, RequestSessionDay, Frequency
 from datetime import date, timedelta
 import calendar as pycalendar
 from .forms import AddTutorSubjectForm
+from django.utils.timezone import now
 
 @login_required
 def dashboard(request):
@@ -208,6 +209,25 @@ def student_view_unmatched_requests(request):
     }
     return render(request, 'student_view_unmatched_requests.html', context)
 
+@login_required
+def student_submits_request(request):
+    """View for a student to submit a new session request."""
+    if not request.user.is_student:
+        return redirect('student_view_unmatched_requests')  # Redirect if not a student
+
+    if request.method == 'POST':
+        form = RequestSessionForm(request.POST)
+        if form.is_valid():
+            # Populate the fields not in the form
+            new_request = form.save(commit=False)
+            new_request.student = request.user  # Assign the logged-in student
+            new_request.date_requested = now().date()  # Automatically set the date
+            new_request.save()
+            return redirect('student_view_unmatched_requests')  # Redirect after submission
+    else:
+        form = RequestSessionForm()
+
+    return render(request, 'student_submits_request.html', {'form': form})
 
 @login_required
 def view_all_users(request):
