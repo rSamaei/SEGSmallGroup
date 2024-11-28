@@ -145,3 +145,27 @@ class TutorSubject(models.Model):
 
     def __str__(self):
         return f"{self.tutor.username} - {self.subject.name}"
+    
+
+class Frequency:
+    """Utility class to handle frequency conversions."""
+    
+    FREQUENCY_CHOICES = {
+        0.5: 'Fortnightly',
+        1.0: 'Weekly',
+        2.0: 'Biweekly',
+        4.0: 'Monthly',
+    }
+
+    @classmethod
+    def to_string(cls, value):
+        """Convert numeric frequency to its string representation."""
+        return cls.FREQUENCY_CHOICES.get(value, 'Unknown')
+
+    @classmethod
+    def to_numeric(cls, label):
+        """Convert string representation of frequency to its numeric value."""
+        for numeric, string in cls.FREQUENCY_CHOICES.items():
+            if string.lower() == label.lower():
+                return numeric
+        return None

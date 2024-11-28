@@ -13,7 +13,7 @@ from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
 from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm, NewAdminForm
 from tutorials.helpers import login_prohibited
-from tutorials.models import RequestSession, TutorSubject, User, Match, RequestSessionDay
+from tutorials.models import RequestSession, TutorSubject, User, Match, RequestSessionDay, Frequency
 from datetime import date, timedelta
 import calendar as pycalendar
 from .forms import AddTutorSubjectForm
@@ -96,7 +96,7 @@ def view_matched_requests(request):
             'subject': match.request_session.subject.name,
             'student_proficiency': match.request_session.proficiency,
             'date_requested': match.request_session.date_requested,
-            'frequency': match.request_session.frequency,
+            'frequency': Frequency.to_string(match.request_session.frequency),
         }
         for match in matched_requests
     ]
