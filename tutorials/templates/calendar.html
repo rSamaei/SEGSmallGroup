@@ -1,42 +1,62 @@
 {% extends 'base_content.html' %}
 {% block content %}
 <div class="container">
-  <div class="row">
-    <div class="col-12">
-      <h1>Full Calendar - {{ month_name }} {{ year }}</h1>
-    </div>
+  <h2>{{ month_name }} {{ year }}</h2>
+  <div class="d-flex justify-content-between mb-3">
+    <a href="?month={{ prev_month }}&year={{ prev_year }}" class="btn btn-primary">Previous</a>
+    <a href="?month={{ next_month }}&year={{ next_year }}" class="btn btn-primary">Next</a>
   </div>
-  <div class="row">
-    <div class="col-12">
-        <table class="full-calendar-table">
-        <thead>
-          <tr>
-            <th>Mon</th>
-            <th>Tue</th>
-            <th>Wed</th>
-            <th>Thu</th>
-            <th>Fri</th>
-            <th>Sat</th>
-            <th>Sun</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for week in calendar_month %}
-            <tr>
-              {% for day in week %}
-                {% if day == 0 %}
-                  <td></td> <!-- Empty cell for days outside the month -->
-                {% elif day in highlighted_dates %}
-                  <td class="highlighted-day">{{ day }}</td>
-                {% else %}
-                  <td>{{ day }}</td>
-                {% endif %}
-              {% endfor %}
-            </tr>
+  <table class="table table-bordered">
+    <thead>
+      <tr>
+        <th>Sun</th>
+        <th>Mon</th>
+        <th>Tue</th>
+        <th>Wed</th>
+        <th>Thu</th>
+        <th>Fri</th>
+        <th>Sat</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for week in calendar_month %}
+        <tr>
+          {% for day in week %}
+            <td class="{% if day != 0 and day in highlighted_dates %}has-sessions{% endif %}">
+              {% if day != 0 %}
+                <div class="date-number">{{ day }}</div>
+                {% for session in sessions %}
+                  {% if day in session.recurring_dates %}
+                    <div class="session p-2 mb-1 bg-light border rounded">
+                      <strong>{{ session.subject.name }}</strong><br>
+                      {% if user.is_admin %}
+                        Student: {{ session.student.username }}<br>
+                        Tutor: {{ session.match.tutor.username }}
+                      {% elif user.is_student %}
+                        Tutor: {{ session.match.tutor.username }}
+                      {% elif user.is_tutor %}
+                        Student: {{ session.student.username }}
+                      {% endif %}
+                      <br>
+                      <small>
+                        Level: {{ session.proficiency }}<br>
+                        {% if session.frequency == 0.5 %}
+                          (Fortnightly)
+                        {% elif session.frequency == 1.0 %}
+                          (Weekly)
+                        {% else %}
+                          (Biweekly)
+                        {% endif %}
+                      </small>
+                    </div>
+                  {% endif %}
+                {% endfor %}
+              {% endif %}
+            </td>
           {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
 {% endblock %}
