@@ -1,0 +1,44 @@
+{% extends 'base_content.html' %}
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-12">
+      <h1>Create Invoice</h1>
+    </div>
+    <form method="get">
+      {% csrf_token %}
+      {{form}}
+      <button type="submit" class="btn btn-primary">Select Tutor</button>
+    </form>
+    {% if request_sessions %}
+      <div class="row gy-4">
+      {% for key, value in request_sessions.items %}
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-body">
+              <h5 class="card-title">Details</h5>
+              <p class="card-text">Student: {{ key.request_session.student.username }}</p>
+              <p class="card-text">Subject: {{ key.request_session.subject.name }}</p>
+              <p>Frequency: {{ key.request_session.frequency }}</p>
+              <div class="card text-center">
+                <p class="card-text">Subject: £{{ value }}</p>
+              </div>
+              <div class="col-md-6">
+                <form method="post">
+                  {% csrf_token %}
+                  <input type="hidden" name="session" value="{{key.id}}">
+                  <input type="hidden" name="price" value="{{value}}">
+                  <button type="submit" class="btn btn-primary">Generate Invoice</button>
+                </form>
+              </div>
+          </div>
+          
+        </div>
+      </div>
+      {% endfor %}
+      </div>
+    {% endif %}
+    
+  </div>
+</div>
+{% endblock %}
