@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpResponseRedirect
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect, render, get_object_or_404
 from django.views import View
 from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
@@ -219,6 +219,22 @@ def view_all_users(request):
     all_users = User.objects.all()
     context = {'all_users': all_users}
     return render(request, 'view_all_users.html', context)
+
+@login_required
+def delete_tutor_subject(request, subject_id):
+    """Delete a tutor's subject from the system."""
+    # Ensure the user is the tutor who owns the subject
+    subject = get_object_or_404(TutorSubject, id=subject_id)
+    
+    # Check if the logged-in user is the tutor who owns this subject
+    if subject.tutor != request.user:
+        return redirect('view_all_tutor_subjects')  # Redirect if the tutor doesn't own the subject
+    
+    # Delete the subject
+    subject.delete()
+
+    # Redirect back to the tutor's subjects page
+    return redirect('view_all_tutor_subjects')
 
 @login_required
 def admin_requested_sessions(request):
