@@ -1,0 +1,35 @@
+{% extends 'base_content.html' %}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-12">
+      <h1>Your Unmatched Requests</h1>
+      <div class="table-responsive">
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th>Request ID</th>
+              <th>Subject</th>
+              <th>Proficiency</th>
+              <th>Frequency</th>
+              <th>Date Requested</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for request in unmatched_requests %}
+              <tr>
+                <td>{{ request.id }}</td>
+                <td>{{ request.subject.name }}</td>
+                <td>{{ request.get_proficiency_display }}</td>
+                <td>{{ request.get_frequency_display }}</td>
+                <td>{{ request.date_requested }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

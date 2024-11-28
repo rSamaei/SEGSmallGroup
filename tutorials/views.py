@@ -7,17 +7,16 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpResponseRedirect
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect, render, get_object_or_404
 from django.views import View
 from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
 from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm, NewAdminForm
 from tutorials.helpers import login_prohibited
-from tutorials.models import RequestSession, TutorSubject, User, Match, RequestSessionDay
-from datetime import date
+from tutorials.models import RequestSession, TutorSubject, User, Match, RequestSessionDay, Frequency
+from datetime import date, timedelta
 import calendar as pycalendar
-
-
+from .forms import AddTutorSubjectForm
 
 @login_required
 def dashboard(request):
@@ -25,41 +24,217 @@ def dashboard(request):
     current_user = request.user
     context = {'user': current_user}
 
-    if (current_user.is_admin):
+    if current_user.is_admin:
         # Get count of unmatched requests
         unmatched_count = RequestSession.objects.filter(
             match__isnull=True
         ).count()
-        
+
+        #Total number of Users
+        total_users_count = User.objects.count()
+        #Total number of matched requests
+        matched_requests_count = Match.objects.count()
+
         context.update({
             'unmatched_count': unmatched_count,
-            'is_admin_view': True
+            'is_admin_view': True,
+            'total_users_count': total_users_count,
+            'matched_requests_count': matched_requests_count,
+
         })
+
+    elif current_user.is_tutor:
+        # Get count of the tutor's subject availability
+        total_subjects_count = TutorSubject.objects.filter(tutor=current_user).count()
+        #Get number of matched requestes for the tutor
+        matched_requests_count = Match.objects.filter(tutor=request.user).count()
+
+        context.update({
+            'total_subjects_count': total_subjects_count,
+            'is_tutor_view': current_user.is_tutor,
+            'matched_requests_count': matched_requests_count,
+        })
+
     else:
+        # Get the count of the current user's unmatched requests
+        unmatched_student_requests = RequestSession.objects.filter(
+            student=current_user,
+            match__isnull=True
+        ).count()
+        #Get number of matched requestes for the student
+        matched_requests_count = Match.objects.filter(request_session__student=request.user).count()
+
         # Add calendar context for non-admin users
         context.update(get_calendar_context(current_user))
+        context.update({
+            'unmatched_student_requests': unmatched_student_requests,
+            'is_student_view': current_user.is_student,
+            'matched_requests_count': matched_requests_count,
+        })
 
     return render(request, 'dashboard.html', context)
+
+@login_required
+def view_matched_requests(request):
+    """Display a table of matched requests for a tutor, student, or admin."""
+    
+    if request.user.is_admin:
+        # Admin can see all matched requests
+        matched_requests = Match.objects.all()
+    elif request.user.is_tutor:
+        # Tutors can see only the requests where they are the tutor
+        matched_requests = Match.objects.filter(tutor=request.user)
+    else:
+        # Students can see only the requests where they are the student
+        matched_requests = Match.objects.filter(request_session__student=request.user)
+    
+    # Fetch the relevant details to be shown in the table
+    matched_requests_data = [
+        {
+            'tutor': match.tutor.username,
+            'student': match.request_session.student.username,
+            'subject': match.request_session.subject.name,
+            'student_proficiency': match.request_session.proficiency,
+            'date_requested': match.request_session.date_requested,
+            'frequency': Frequency.to_string(match.request_session.frequency),
+        }
+        for match in matched_requests
+    ]
+    
+    return render(request, 'view_matched_requests.html', {'matched_requests_data': matched_requests_data})
+
+@login_required
+def view_all_tutor_subjects(request):
+    # Display all the subjects a tutor is available to teach.
+    current_user = request.user
+    if not current_user.is_tutor:
+        return redirect('dashboard')
+
+    all_subjects = TutorSubject.objects.filter(tutor=current_user)
+
+    if request.method == 'POST':
+        form = AddTutorSubjectForm(request.POST)
+        if form.is_valid():
+            new_subject = form.save(commit=False)
+            # Ensure the tutor field is set to the current user.
+            new_subject.tutor = current_user
+            new_subject.save()
+            messages.success(request, 'New subject added successfully!')
+            return redirect('view_all_tutor_subjects')
+        else:
+            messages.error(request, 'Error adding subject. Please try again.')
+    else:
+        form = AddTutorSubjectForm(initial={'tutor': current_user})
+
+    context = {
+        'all_subjects': all_subjects,
+        'form': form,
+    }
+    return render(request, 'view_all_tutor_subjects.html', context)
+
+@login_required
+def add_new_subject(request):
+    """Display a form to allow tutors to add a new subject."""
+    current_user = request.user
+    if not current_user.is_tutor:
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        form = AddTutorSubjectForm(request.POST)
+        if form.is_valid():
+            new_subject = form.save(commit=False)
+            # Ensure the tutor field is set to the current user
+            new_subject.tutor = current_user
+            new_subject.save()
+            messages.success(request, 'New subject added successfully!')
+            return redirect('view_all_tutor_subjects')
+        else:
+            messages.error(request, 'Error adding subject. Please try again.')
+    else:
+        form = AddTutorSubjectForm(initial={'tutor': current_user})
+
+    context = {'form': form}
+    return render(request, 'add_new_subject.html', context)
 
 @login_required
 def calendar_view(request):
     """Display a full calendar with matched schedules."""
     current_user = request.user
 
-    # Use the helper function to get calendar context
-    calendar_context = get_calendar_context(current_user)
+    # Get month and year from request parameters
+    month = int(request.GET.get('month', date.today().month))
+    year = int(request.GET.get('year', date.today().year))
 
-    # Add additional details for the full calendar view
-    from datetime import date
-    today = date.today()
+    # Use the helper function to get calendar context
+    calendar_context = get_calendar_context(current_user, month, year)
+
+    # Calculate previous and next month
+    prev_month = month - 1 if month > 1 else 12
+    prev_year = year if month > 1 else year - 1
+    next_month = month + 1 if month < 12 else 1
+    next_year = year if month < 12 else year + 1
+
     context = {
         'calendar_month': calendar_context['calendar_month'],
         'highlighted_dates': calendar_context['highlighted_dates'],
-        'month_name': today.strftime('%B'),
-        'year': today.year,
+        'sessions': calendar_context['sessions'],
+        'month_name': date(year, month, 1).strftime('%B'),
+        'year': year,
+        'prev_month': prev_month,
+        'prev_year': prev_year,
+        'next_month': next_month,
+        'next_year': next_year,
     }
 
     return render(request, 'calendar.html', context)
+
+@login_required
+def student_view_unmatched_requests(request):
+    """Display unmatched requests for the logged-in student."""
+    current_user = request.user
+
+    # Ensure the user is a student
+    if not current_user.is_student:
+        return redirect('dashboard')  # Redirect non-students to their dashboard
+
+    unmatched_requests = RequestSession.objects.filter(
+        student=current_user,
+        match__isnull=True
+    )
+
+    context = {
+        'unmatched_requests': unmatched_requests
+    }
+    return render(request, 'student_view_unmatched_requests.html', context)
+
+
+@login_required
+def view_all_users(request):
+    """Display all users in a separate page."""
+    current_user = request.user
+    if not current_user.is_admin:
+        # Redirect to dashboard if the user is not an admin
+        return redirect('dashboard')
+
+    all_users = User.objects.all()
+    context = {'all_users': all_users}
+    return render(request, 'view_all_users.html', context)
+
+@login_required
+def delete_tutor_subject(request, subject_id):
+    """Delete a tutor's subject from the system."""
+    # Ensure the user is the tutor who owns the subject
+    subject = get_object_or_404(TutorSubject, id=subject_id)
+    
+    # Check if the logged-in user is the tutor who owns this subject
+    if subject.tutor != request.user:
+        return redirect('view_all_tutor_subjects')  # Redirect if the tutor doesn't own the subject
+    
+    # Delete the subject
+    subject.delete()
+
+    # Redirect back to the tutor's subjects page
+    return redirect('view_all_tutor_subjects')
 
 @login_required
 def admin_requested_sessions(request):
@@ -159,10 +334,6 @@ def registerNewAdmin(request):
     
     return render(request, 'registerAdmin.html', {'form':form})
 
-
-
-
-
 @login_prohibited
 def home(request):
     """Display the application's start/home screen."""
@@ -234,45 +405,95 @@ def log_out(request):
     logout(request)
     return redirect('home')
 
-def get_calendar_context(user):
-    """Generate the calendar context for the user dashboard."""
-    # Define a color palette for different sessions
-    colors = cycle(['#FFD700', '#FF8C00', '#1E90FF', '#32CD32', '#FF69B4', '#7B68EE'])
+def get_recurring_dates(session, year, month):
+    """Generate recurring dates based on session frequency and term."""
+    dates = []
+    
+    # Get start and end of current month
+    month_start = date(year, month, 1)
+    month_end = date(year, month + 1, 1) - timedelta(days=1) if month < 12 else date(year + 1, 1, 1) - timedelta(days=1)
+    print(month_start, month_end)
 
-    # Get the current month and year
-    today = date.today()
-    cal = pycalendar.Calendar(firstweekday=0)
-    calendar_month = cal.monthdayscalendar(today.year, today.month)
+    request_date = session.date_requested
+    if(session.frequency == 2.0):
+        interlude = 1
+    else:
+        interlude = int(7 / session.frequency)
+    print(session.frequency)
+    print(interlude)
 
-    # Fetch all matched sessions for this user
-    matched_sessions = RequestSessionDay.objects.filter(
-        request_session__match__tutor=user,
-        request_session__match__isnull=False  # Ensure there's a match
-    ).select_related('request_session')
+    # calculate academic year dates based on request_date
+    if 9 <= request_date.month <= 12:
+        academic_year_start = date(request_date.year, 9, 1)
+        academic_year_end = date(request_date.year + 1, 7, 20)
+        term_dates = [
+            (date(request_date.year, 9, 1), date(request_date.year, 12, 20)),  # Autumn
+            (date(request_date.year + 1, 1, 4), date(request_date.year + 1, 3, 31)),  # Spring
+            (date(request_date.year + 1, 4, 15), date(request_date.year + 1, 7, 20))  # Summer
+        ]
+    else:
+        academic_year_start = date(request_date.year - 1, 9, 1)
+        academic_year_end = date(request_date.year, 7, 20)
+        term_dates = [
+            (date(request_date.year - 1, 9, 1), date(request_date.year - 1, 12, 20)),  # Autumn
+            (date(request_date.year, 1, 4), date(request_date.year, 3, 31)),  # Spring
+            (date(request_date.year, 4, 15), date(request_date.year, 7, 20))  # Summer
+        ]
+    
+    # Get session days
+    session_days = [day.day_of_week for day in session.days.all()]
 
-    # Dictionary to store color for each session ID
-    session_colors = {}
-    for session in matched_sessions:
-        if session.request_session.id not in session_colors:
-            session_colors[session.request_session.id] = next(colors)
+    # current = month_start
+    current = academic_year_start
+    while current <= min(academic_year_end, month_end):
+        in_term = any(term_start <= current <= term_end for term_start, term_end in term_dates)
 
-    # Prepare a dictionary of highlighted dates
-    highlighted_dates = {}
-    for session_day in matched_sessions:
-        day_of_week = session_day.day_of_week
+        if in_term and pycalendar.day_name[current.weekday()] in session_days and current.month == month:
+            print(pycalendar.day_name[current.weekday()], ", session days: ", session_days)
+            dates.append(current.day + 1)
+            current += timedelta(days=interlude)
+        else:
+            current += timedelta(days=1)
+    
+    """so basically the dates are being added as the actual number days
+        so if the date is 2022-01-01, the day is being added as 1
+        calendar will then cycle through the calendar which is just a table with numbers and add it in if the number is the same"""
 
-        # Find all days of this weekday in the current month
-        for week in calendar_month:
-            if week[day_of_week]:  # if day is not 0, i.e., it exists in the month
-                day = week[day_of_week]
-                if day not in highlighted_dates:
-                    highlighted_dates[day] = []
-                highlighted_dates[day].append(session_colors[session_day.request_session.id])
+    return dates
 
-    # Return the prepared calendar context
+def get_calendar_context(user, month=None, year=None):
+    """Get calendar context for the user."""
+    if month is None:
+        month = date.today().month
+    if year is None:
+        year = date.today().year
+    
+    # Filter sessions based on user type
+    if user.user_type == 'student':
+        sessions = RequestSession.objects.filter(
+            student=user,
+            match__isnull=False
+        ).select_related('match', 'subject', 'match__tutor').prefetch_related('days')
+    elif user.user_type == 'tutor':
+        sessions = RequestSession.objects.filter(
+            match__tutor=user
+        ).select_related('match', 'subject', 'student').prefetch_related('days')
+    else:
+        sessions = RequestSession.objects.filter(
+            match__isnull=False
+        ).select_related('match', 'subject', 'student', 'match__tutor').prefetch_related('days')
+
+    # Get recurring dates for each session
+    highlighted_dates = set()
+    for session in sessions:
+        recurring_dates = get_recurring_dates(session, year, month)
+        session.recurring_dates = recurring_dates  # Add to session object
+        highlighted_dates.update(recurring_dates)
+    
     return {
-        'calendar_month': calendar_month,
+        'calendar_month': pycalendar.monthcalendar(year, month),
         'highlighted_dates': highlighted_dates,
+        'sessions': sessions
     }
 
 class PasswordView(LoginRequiredMixin, FormView):

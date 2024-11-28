@@ -1,0 +1,18 @@
+{% extends 'base_content.html' %}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-12">
+      <h1>Add a New Subject</h1>
+      <p>Please fill out the form below to add a new subject you can teach.</p>
+      <form method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary mt-3">Submit</button>
+        <a href="{% url 'view_all_tutor_subjects' %}" class="btn btn-secondary mt-3">Cancel</a>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

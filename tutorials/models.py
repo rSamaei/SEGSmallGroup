@@ -83,27 +83,26 @@ class RequestSession(models.Model):
         (0.5, 'Fortnightly'),
         (1, 'Weekly'),
         (2, 'Biweekly'),
+        (4, 'Monthly'),
     )
 
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='requests')
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     frequency = models.DecimalField(max_digits=2, decimal_places=1, default=1.0)  # Added default=1 for once per week
     proficiency = models.CharField(max_length=12, choices=PROFICIENCY_TYPES, default='Beginner')
-    date_requested = models.DateTimeField(auto_now_add=True)
+    date_requested = models.DateField(null=False, blank=False)  # Change from DateTimeField to DateField
 
     class Meta:
         unique_together = ('student', 'subject')
 
     def __str__(self):
         return f"{self.student.username} - {self.subject.name}"
-    
+
+
+
 class RequestSessionDay(models.Model):
     """Model to represent days associated with a RequestSession."""
-    request_session = models.ForeignKey(
-        RequestSession,
-        on_delete=models.CASCADE,
-        related_name='days'
-    )
+    request_session = models.ForeignKey(RequestSession, on_delete=models.CASCADE, related_name='days')
     day_of_week = models.CharField(
         max_length=15,
         choices=[
@@ -146,3 +145,27 @@ class TutorSubject(models.Model):
 
     def __str__(self):
         return f"{self.tutor.username} - {self.subject.name}"
+    
+
+class Frequency:
+    """Utility class to handle frequency conversions."""
+    
+    FREQUENCY_CHOICES = {
+        0.5: 'Fortnightly',
+        1.0: 'Weekly',
+        2.0: 'Biweekly',
+        4.0: 'Monthly',
+    }
+
+    @classmethod
+    def to_string(cls, value):
+        """Convert numeric frequency to its string representation."""
+        return cls.FREQUENCY_CHOICES.get(value, 'Unknown')
+
+    @classmethod
+    def to_numeric(cls, label):
+        """Convert string representation of frequency to its numeric value."""
+        for numeric, string in cls.FREQUENCY_CHOICES.items():
+            if string.lower() == label.lower():
+                return numeric
+        return None

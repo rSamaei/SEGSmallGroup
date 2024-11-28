@@ -4,7 +4,22 @@ from django.contrib.auth import authenticate
 from django.core.validators import RegexValidator
 
 from django.forms import Select
-from .models import User, Match, RequestSession, RequestSessionDay
+from .models import User, Match, RequestSession, RequestSessionDay, TutorSubject, Subject
+
+class AddTutorSubjectForm(forms.ModelForm):
+    class Meta:
+        model = TutorSubject
+        fields = ['tutor', 'subject', 'proficiency']
+        widgets = {
+            'tutor': forms.HiddenInput(),
+            'subject': forms.Select(attrs={'class': 'form-control'}),
+            'proficiency': forms.Select(attrs={'class': 'form-control'}),
+        }
+        labels = {
+            'subject': 'Subject',
+            'proficiency': 'Proficiency Level',
+        }
+
 
 class LogInForm(forms.Form):
     """Form enabling registered users to log in."""
