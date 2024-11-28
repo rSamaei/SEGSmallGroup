@@ -408,15 +408,13 @@ def log_out(request):
 def get_recurring_dates(session, year, month):
     """Generate recurring dates based on session frequency and term."""
     dates = []
-
-    # If session.date_requested is None, use today's date as fallback
-    request_date = session.date_requested or date.today()
-
+    
     # Get start and end of current month
     month_start = date(year, month, 1)
     month_end = date(year, month + 1, 1) - timedelta(days=1) if month < 12 else date(year + 1, 1, 1) - timedelta(days=1)
     print(month_start, month_end)
 
+    request_date = session.date_requested
     if(session.frequency == 2.0):
         interlude = 1
     else:
@@ -456,13 +454,12 @@ def get_recurring_dates(session, year, month):
             current += timedelta(days=interlude)
         else:
             current += timedelta(days=1)
-
+    
     """so basically the dates are being added as the actual number days
         so if the date is 2022-01-01, the day is being added as 1
         calendar will then cycle through the calendar which is just a table with numbers and add it in if the number is the same"""
-    
-    return dates
 
+    return dates
 
 def get_calendar_context(user, month=None, year=None):
     """Get calendar context for the user."""
