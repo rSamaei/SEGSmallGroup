@@ -40,5 +40,6 @@ urlpatterns = [
     path('add-new-subject/', views.add_new_subject, name='add_new_subject'),
     path('view_matched_requests/', views.view_matched_requests, name='view_matched_requests'),
     path('delete_tutor_subject/<int:subject_id>/', views.delete_tutor_subject, name='delete_tutor_subject'),
+    path('submit-request/', views.student_submits_request, name='student_submits_request'),
 ]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
