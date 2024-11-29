@@ -88,7 +88,7 @@ class RequestSession(models.Model):
 
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='requests')
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
-    frequency = models.DecimalField(max_digits=2, decimal_places=1, default=1.0)  # Added default=1 for once per week
+    frequency = models.DecimalField(max_digits=3, decimal_places=2, default=1.0)  # Added default=1 for once per week
     proficiency = models.CharField(max_length=12, choices=PROFICIENCY_TYPES, default='Beginner')
     date_requested = models.DateField(null=False, blank=False)  # Change from DateTimeField to DateField
 
