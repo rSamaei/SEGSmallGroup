@@ -3,13 +3,19 @@
 <div class="container">
   <div class="row">
     <div class="col-12">
-      <h1>Create Invoice</h1>
+      <h1>View Invoices</h1>
     </div>
+    {% if form %}
     <form method="get">
       {% csrf_token %}
-      {{form}}
+      {{form}}S
       <button type="submit" class="btn btn-primary">Select Tutor</button>
     </form>
+    {% endif %}
+    {% if request_sessions == None %}
+      <h1>No invoices to view</h1>
+    {% endif %}
+    
     {% if request_sessions %}
       <div class="row gy-4">
       {% for key, value in request_sessions.items %}
@@ -17,20 +23,24 @@
         <div class="card">
           <div class="card-body">
               <h5 class="card-title">Details</h5>
-              <p class="card-text">Student: {{ key.request_session.student.username }}</p>
+              {% if user.is_student %}
+                <p class="card-text">Tutor: {{ key.tutor.first_name }} {{ key.tutor.last_name }}</p>
+              {% else %}
+                <p class="card-text">Student: {{ key.request_session.student.first_name }} {{ key.request_session.student.last_name }}</p>
+              {% endif %}
               <p class="card-text">Subject: {{ key.request_session.subject.name }}</p>
               <p>Frequency: {{ key.request_session.frequency }}</p>
               <div class="card text-center">
-                <p class="card-text">Subject: £{{ value }}</p>
+                <p class="card-text">Total Payment : £{{ value }}</p>
               </div>
-              <div class="col-md-6">
+              <!-- <div class="col-md-6">
                 <form method="post">
                   {% csrf_token %}
                   <input type="hidden" name="session" value="{{key.id}}">
                   <input type="hidden" name="price" value="{{value}}">
-                  <button type="submit" class="btn btn-primary">Generate Invoice</button>
+                  <button type="submit" class="btn btn-primary">View Invoice</button>
                 </form>
-              </div>
+              </div> -->
           </div>
           
         </div>

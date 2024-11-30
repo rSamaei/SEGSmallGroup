@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 from datetime import date, timedelta
 
-from tutorials.models import User, Subject, RequestSession, Match, TutorSubject, RequestSessionDay
+from tutorials.models import User, Subject, RequestSession, Match, TutorSubject, RequestSessionDay, Invoice
 
 import pytz
 from faker import Faker
@@ -156,14 +156,28 @@ class Command(BaseCommand):
             # if there are tutors available for this subject, match one to the session
             if tutors_for_subject.exists():
                 tutor = choice(tutors_for_subject)  # randomly choose a tutor
-                Match.objects.get_or_create(
+                tempMatch = Match.objects.get_or_create(
                     request_session=session,
                     tutor=tutor
                 )
+                generateInvoice(tempMatch[0])
             else:
                 print(f"No tutor available for subject: {session.subject.name}")
 
         print("Matches seeded.")
+        print("Invoices seeded.")
+
+def generateInvoice(session_match:Match):
+    selectedTutor = session_match.tutor
+    tutorSub = TutorSubject.objects.filter(
+        tutor = selectedTutor,
+        subject = session_match.request_session.subject,
+    )
+    tempPrice = round(tutorSub[0].price * 27 * session_match.request_session.frequency, 2)
+    tempInvoice = Invoice.objects.create(
+        match = session_match,
+        payment = tempPrice
+    )
 
 def create_username(first_name, last_name):
     return '@' + first_name.lower() + last_name.lower()
