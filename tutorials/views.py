@@ -12,7 +12,7 @@ from django.views import View
 from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
 
-from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm, NewAdminForm,RequestSessionForm, SelectTutorForInvoice
+from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm, NewAdminForm,RequestSessionForm, SelectTutorForInvoice, SelectStudentsForInvoice
 
 from tutorials.helpers import login_prohibited
 
@@ -332,7 +332,8 @@ def create_match(request, request_id):
         form = TutorMatchForm(session, request.POST)
         if form.is_valid():
             try:
-                form.save(request_session=session)
+                tempMatch = form.save(request_session=session)
+                generateInvoice(tempMatch)
                 messages.success(request, 'Match created successfully')
                 return redirect('admin_requested_sessions')
             except Exception as e:
@@ -345,6 +346,8 @@ def create_match(request, request_id):
 
 @login_required
 def registerNewAdmin(request):
+    if not request.user.is_admin:
+        return redirect('dashboard')
     form = None
     if request.method == "POST":
        form = NewAdminForm(request.POST) 
@@ -377,63 +380,101 @@ def registerNewAdmin(request):
 @login_required
 def invoice(request):
     form = None
-    if request.method == "GET":
-        form = SelectTutorForInvoice(request.GET)
-        if form.is_valid():
-            selectedTutor = form.cleaned_data.get('tutor')
-            allMatches = Match.objects.filter(
-                tutor = selectedTutor
-            )
-            count = allMatches.count()
-            listOfSessions = None
+    if request.user.is_admin:
+        if request.method == "GET":
+            form = SelectTutorForInvoice(request.GET)
+            if form.is_valid():
+                selectedTutor = form.cleaned_data.get('tutor')
+                allMatches = Match.objects.filter(
+                    tutor = selectedTutor
+                )
+                count = allMatches.count()
+                listOfSessions = None
 
-            if count > 0:
-                listOfSessions = {}
-                for match in allMatches:
-                    tutorSub = TutorSubject.objects.filter(
-                        tutor = selectedTutor,
-                        subject = match.request_session.subject,
-                    )
-                    listOfSessions[match] = round(tutorSub[0].price * 27 * match.request_session.frequency, 2)
-    
+                if count > 0:
+                    listOfSessions = {}
+                    for match in allMatches:
+                        tutorSub = TutorSubject.objects.filter(
+                            tutor = selectedTutor,
+                            subject = match.request_session.subject,
+                        )
+                        listOfSessions[match] = round(tutorSub[0].price * 27 * match.request_session.frequency, 2)
+        
+                
+
+                context = {'form' : form, 'request_sessions':listOfSessions}
+                return render(request, 'invoice.html', context)
+            else:
+                form = SelectTutorForInvoice()
+                context = {'form' : form, 'request_sessions':None}
+                return render(request, 'invoice.html', context)
+
+        elif request.method == "POST":
+            price = request.POST['price']
+            matchID = request.POST['session']
+            print(matchID)
+            session_match = get_object_or_404(Match, id=matchID)
+            
+            try:
+                tempInvoice = Invoice.objects.create(
+                    match = session_match,
+                    payment = price
+                )
+            except Exception as e:
+                print(e)
+                form = SelectTutorForInvoice()
+                context = {'form' : form, 'request_sessions':None}
+                return render(request, 'invoice.html', context)
+
+            form = SelectTutorForInvoice()
+            context = {'form' : form, 'request_sessions':None}
+            return render(request, 'invoice.html', context)
             
 
-            context = {'form' : form, 'request_sessions':listOfSessions}
-            return render(request, 'invoice.html', context)
         else:
             form = SelectTutorForInvoice()
             context = {'form' : form, 'request_sessions':None}
             return render(request, 'invoice.html', context)
-
-    elif request.method == "POST":
-        price = request.POST['price']
-        matchID = request.POST['session']
-        print(matchID)
-        session_match = get_object_or_404(Match, id=matchID)
-        
-        try:
-            tempInvoice = Invoice.objects.create(
-                match = session_match,
-                payment = price
-            )
-        except Exception as e:
-            print(e)
-            form = SelectTutorForInvoice()
-            context = {'form' : form, 'request_sessions':None}
-            return render(request, 'invoice.html', context)
-
-        form = SelectTutorForInvoice()
-        context = {'form' : form, 'request_sessions':None}
-        return render(request, 'invoice.html', context)
-        
-
-    else:
-        form = SelectTutorForInvoice()
-        context = {'form' : form, 'request_sessions':None}
+    
+    elif request.user.is_tutor:
+        allMatches = Match.objects.filter(
+            tutor = request.user
+        )
+        listOfInvoice = {}
+        for match in allMatches:
+            inv = Invoice.objects.filter(match = match)
+            listOfInvoice[match] = inv[0].payment
+        context = {'form' : form, 'request_sessions': listOfInvoice}
         return render(request, 'invoice.html', context)
     
+    elif request.user.is_student:
+        allMatches = Match.objects.filter(
+            request_session__student = request.user
+        )
+        listOfInvoice = {}
+        for match in allMatches:
+            inv = Invoice.objects.filter(match = match)
+            listOfInvoice[match] = inv[0].payment
+        context = {'form' : form, 'request_sessions': listOfInvoice}
+        return render(request, 'invoice.html', context)
+
+
     
     
+    
+def generateInvoice(session_match:Match):
+    selectedTutor = session_match.tutor
+    tutorSub = TutorSubject.objects.filter(
+        tutor = selectedTutor,
+        subject = session_match.request_session.subject,
+    )
+    tempPrice = round(tutorSub[0].price * 27 * session_match.request_session.frequency, 2)
+    tempInvoice = Invoice.objects.create(
+        match = session_match,
+        payment = tempPrice
+    )
+    
+
 
 
 
