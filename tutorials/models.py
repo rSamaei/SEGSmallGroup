@@ -3,6 +3,8 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from libgravatar import Gravatar
 
+
+
 class User(AbstractUser):
     """Model used for user authentication, and team member related information."""
 
@@ -24,6 +26,9 @@ class User(AbstractUser):
     last_name = models.CharField(max_length=50, blank=False)
     email = models.EmailField(unique=True, blank=False)
     user_type = models.CharField(max_length=10, choices=USER_TYPE_CHOICES, default='student')
+
+    def __str__(self):
+        return self.username
 
     @property
     def is_admin(self) -> bool:
@@ -69,7 +74,10 @@ class Subject(models.Model):
 
     def __str__(self):
         return self.name
-    
+
+
+
+
 class RequestSession(models.Model):
     """Model for a session request made by a student"""
 
@@ -131,6 +139,16 @@ class Match(models.Model):
     def __str__(self):
         return f"Match: {self.request_session} with Tutor {self.tutor.username}"
 
+
+class Invoice(models.Model):
+    """Model used to represent invoices"""
+
+    payment = models.DecimalField(max_digits=10, decimal_places=2)
+    match = models.ForeignKey(Match, on_delete=models.CASCADE, unique=True)
+    class Meta:
+        abstract = False
+
+
 class TutorSubject(models.Model):
     """Model for tutors and their associated subjects"""
     
@@ -143,6 +161,7 @@ class TutorSubject(models.Model):
     tutor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tutor_subjects')
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     proficiency = models.CharField(max_length=12, choices=PROFICIENCY_TYPES, default='Beginner')
+    price  = models.DecimalField(max_digits=4, decimal_places=2, default=10.00)
 
     class Meta:
         unique_together = ('tutor', 'subject')

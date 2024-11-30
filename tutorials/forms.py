@@ -220,3 +220,44 @@ class NewAdminForm(NewPasswordMixin, forms.ModelForm):
 
         model = User
         fields = ['first_name', 'last_name', 'username', 'email']
+
+
+
+class SelectTutorForInvoice(forms.Form):
+    tutor = forms.ModelChoiceField(queryset=None, empty_label="Unselected",widget=forms.Select(attrs={'class': 'form-select mb-3'}))
+
+    def __init__(self , *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        matched_user_ids = Match.objects.values_list('tutor_id', flat=True)
+        self.fields['tutor'].queryset = User.objects.filter(id__in=matched_user_ids).distinct()
+
+
+class RequestSessionForm(forms.ModelForm):
+    """Form for creating or updating RequestSession with multiple days."""
+
+    days = forms.MultipleChoiceField(
+        choices=[
+            ('Monday', 'Monday'),
+            ('Tuesday', 'Tuesday'),
+            ('Wednesday', 'Wednesday'),
+            ('Thursday', 'Thursday'),
+            ('Friday', 'Friday'),
+        ],
+        widget=forms.CheckboxSelectMultiple
+    )
+
+    class Meta:
+        model = RequestSession
+        fields = ['subject', 'proficiency', 'days']
+        widgets = {
+            'frequency': Select(attrs={'class': 'form-select'}),
+        }
+
+    def save_days(self, request_session, days):
+        """Save the selected days to the RequestSessionDay model."""
+        # Clear existing days
+        RequestSessionDay.objects.filter(request_session=request_session).delete()
+        # Add new days
+        for day in days:
+            RequestSessionDay.objects.create(request_session=request_session, day_of_week=day)
+
