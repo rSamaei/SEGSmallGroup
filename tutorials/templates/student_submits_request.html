@@ -1,0 +1,25 @@
+{% extends 'base_content.html' %}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-12">
+      <h1>Submit a New Request</h1>
+      <form method="post" class="mt-4">
+        {% csrf_token %}
+        {{ form.as_p }}  <!-- Automatically renders the form, including frequency dropdown -->
+        <button type="submit" class="btn btn-success">Submit Request</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% if messages %}
+  <div class="alert alert-danger">
+    {% for message in messages %}
+      <p>{{ message }}</p>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% endblock %}

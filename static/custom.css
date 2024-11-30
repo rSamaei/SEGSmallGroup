@@ -127,13 +127,21 @@ h3.profile-title {
 .mini-calendar-table {
   width: 100%; /* Make the mini calendar take the full width of its container */
   border-collapse: collapse; /* Merge table borders */
+  table-layout: fixed;
 }
 
 .mini-calendar-table th,
 .mini-calendar-table td {
   border: 1px solid #ddd; /* Light border for cells */
   text-align: center; /* Center text */
-  padding: 7px; /* Smaller spacing for mini-calendar */
+  padding: 5px; /* Smaller spacing for mini-calendar */
+  height: 40px; /* Control vertical height */
+  font-size: 0.9rem;
+}
+
+.mini-calendar-table thead th {
+  background-color: #f8f9fa;
+  height: 30px; /* Smaller header height */
 }
 
 .mini-calendar-table th {
@@ -146,13 +154,24 @@ h3.profile-title {
 }
 
 .mini-calendar-table td.highlighted-day {
-  background-color: #ffc107; /* Highlight for matched dates (yellow) */
+  background-color: #e3f2fd; /* Highlight for matched dates (yellow) */
   color: #000; /* Ensure readable text */
+  font-weight: bold;
 }
 
 .mini-calendar-table td:hover {
   background-color: #f0f8ff; /* Slight highlight on hover */
   cursor: pointer; /* Change cursor to pointer */
+}
+
+/* Make calendar more compact on mobile */
+@media (max-width: 768px) {
+  .mini-calendar-table td,
+  .mini-calendar-table th {
+    height: 35px;
+    padding: 3px;
+    font-size: 0.8rem;
+  }
 }
 
 .full-calendar-table {

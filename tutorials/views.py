@@ -11,7 +11,9 @@ from django.shortcuts import redirect, render, get_object_or_404
 from django.views import View
 from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
-from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm, NewAdminForm, SelectTutorForInvoice
+
+from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm, NewAdminForm,RequestSessionForm, SelectTutorForInvoice
+
 from tutorials.helpers import login_prohibited
 
 from tutorials.models import RequestSession, TutorSubject, User, Match, RequestSessionDay, Frequency, Invoice
@@ -20,6 +22,8 @@ from collections import defaultdict
 
 import calendar as pycalendar
 from .forms import AddTutorSubjectForm
+from django.utils.timezone import now
+from django.db import IntegrityError
 
 @login_required
 def dashboard(request):
@@ -52,6 +56,7 @@ def dashboard(request):
         #Get number of matched requestes for the tutor
         matched_requests_count = Match.objects.filter(tutor=request.user).count()
 
+        context.update(get_calendar_context(current_user))
         context.update({
             'total_subjects_count': total_subjects_count,
             'is_tutor_view': current_user.is_tutor,
@@ -210,6 +215,34 @@ def student_view_unmatched_requests(request):
     }
     return render(request, 'student_view_unmatched_requests.html', context)
 
+@login_required
+def student_submits_request(request):
+    """View for a student to submit a new session request."""
+    # Redirect if the user is not a student
+    if not request.user.is_student:
+        return redirect('student_view_unmatched_requests')
+
+    if request.method == 'POST':
+        # Pass the logged-in student to the form
+        form = RequestSessionForm(request.POST, student=request.user)
+        if form.is_valid():
+            try:
+                # Create the RequestSession object but don't save it yet
+                new_request = form.save(commit=False)
+                # Set additional fields
+                new_request.student = request.user  # Assign the logged-in student
+                new_request.date_requested = now().date()  # Set the current date
+                new_request.save()  # Save the RequestSession
+                # Redirect to a success page or the student's unmatched requests
+                return redirect('student_view_unmatched_requests')
+            except IntegrityError:
+                # Handle duplicate request error
+                messages.error(request, "You have already submitted a request for this subject.")
+    else:
+        # Pass the logged-in student to the form for initialisation
+        form = RequestSessionForm(student=request.user)
+
+    return render(request, 'student_submits_request.html', {'form': form})
 
 @login_required
 def view_all_users(request):
@@ -487,15 +520,12 @@ def get_recurring_dates(session, year, month):
     # Get start and end of current month
     month_start = date(year, month, 1)
     month_end = date(year, month + 1, 1) - timedelta(days=1) if month < 12 else date(year + 1, 1, 1) - timedelta(days=1)
-    print(month_start, month_end)
 
     request_date = session.date_requested
     if(session.frequency == 2.0):
         interlude = 1
     else:
         interlude = int(7 / session.frequency)
-    print(session.frequency)
-    print(interlude)
 
     # calculate academic year dates based on request_date
     if 9 <= request_date.month <= 12:
@@ -524,7 +554,6 @@ def get_recurring_dates(session, year, month):
         in_term = any(term_start <= current <= term_end for term_start, term_end in term_dates)
 
         if in_term and pycalendar.day_name[current.weekday()] in session_days and current.month == month:
-            print(pycalendar.day_name[current.weekday()], ", session days: ", session_days)
             dates.append(current.day + 1)
             current += timedelta(days=interlude)
         else:
