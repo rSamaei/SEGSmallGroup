@@ -4,7 +4,64 @@ from django.contrib.auth import authenticate
 from django.core.validators import RegexValidator
 
 from django.forms import Select
-from .models import User, Match, RequestSession, RequestSessionDay
+from .models import User, Match, RequestSession, RequestSessionDay, TutorSubject, Subject, Frequency
+from django.core.exceptions import ValidationError
+
+class AddTutorSubjectForm(forms.ModelForm):
+    class Meta:
+        model = TutorSubject
+        fields = ['tutor', 'subject', 'proficiency']
+        widgets = {
+            'tutor': forms.HiddenInput(),
+            'subject': forms.Select(attrs={'class': 'form-control'}),
+            'proficiency': forms.Select(attrs={'class': 'form-control'}),
+        }
+        labels = {
+            'subject': 'Subject',
+            'proficiency': 'Proficiency Level',
+        }
+
+class RequestSessionForm(forms.ModelForm):
+    """Form for students to create a new session request."""
+
+    """We may need this later so commenting it out"""
+    # days = forms.MultipleChoiceField(
+    #     choices=[
+    #         ('Monday', 'Monday'),
+    #         ('Tuesday', 'Tuesday'),
+    #         ('Wednesday', 'Wednesday'),
+    #         ('Thursday', 'Thursday'),
+    #         ('Friday', 'Friday'),
+    #     ],
+    #     widget=forms.CheckboxSelectMultiple
+    # )
+
+    class Meta:
+        model = RequestSession
+        fields = ['subject', 'proficiency', 'frequency']
+        widgets = {
+            'proficiency': forms.Select(choices=RequestSession.PROFICIENCY_TYPES),
+            'frequency': forms.Select(choices=RequestSession.FREQUENCY_CHOICES),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.student = kwargs.pop('student', None)  # Accept the logged-in student
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        subject = cleaned_data.get('subject')
+
+        # Use the student passed during form instantiation
+        if not self.student:
+            raise ValidationError("Student information is missing.")
+
+        # Check for duplicate requests
+        if RequestSession.objects.filter(student=self.student, subject=subject).exists():
+            raise ValidationError("You have already submitted a request for this subject.")
+
+        return cleaned_data
+
 
 class LogInForm(forms.Form):
     """Form enabling registered users to log in."""
@@ -21,7 +78,6 @@ class LogInForm(forms.Form):
             password = self.cleaned_data.get('password')
             user = authenticate(username=username, password=password)
         return user
-
 
 class UserForm(forms.ModelForm):
     """Form to update user profiles."""
@@ -55,7 +111,6 @@ class NewPasswordMixin(forms.Form):
         if new_password != password_confirmation:
             self.add_error('password_confirmation', 'Confirmation does not match password.')
 
-
 class PasswordForm(NewPasswordMixin):
     """Form enabling users to change their password."""
 
@@ -87,7 +142,6 @@ class PasswordForm(NewPasswordMixin):
             self.user.set_password(new_password)
             self.user.save()
         return self.user
-
 
 class SignUpForm(NewPasswordMixin, forms.ModelForm):
     """Form enabling unregistered users to sign up."""
@@ -164,6 +218,38 @@ class NewAdminForm(NewPasswordMixin, forms.ModelForm):
         model = User
         fields = ['first_name', 'last_name', 'username', 'email']
 
+class SelectTutorForInvoice(forms.Form):
+    tutor = forms.ModelChoiceField(
+        queryset=None, 
+        empty_label="Unselected",
+        widget=forms.Select(attrs={'class': 'form-select mb-3'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        matched_user_ids = Match.objects.filter(
+            tutor_approved=True  # Only include approved matches
+        ).values_list('tutor_id', flat=True)
+        self.fields['tutor'].queryset = User.objects.filter(id__in=matched_user_ids).distinct()
+
+class SelectStudentsForInvoice(forms.Form):
+    student = forms.ModelChoiceField(queryset=None, empty_label="Unselected",widget=forms.Select(attrs={'class': 'form-select mb-3'}))
+
+    def __init__(self , selfTutor:User, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        matches = Match.objects.filter(tutor=selfTutor)
+
+        # Get the list of student IDs from matched sessions
+        student_ids = matches.values_list('request_session__student__id', flat=True)
+
+        # Filter students who are part of the matches
+        self.fields['student'].queryset = User.objects.filter(
+            id__in=student_ids,
+            user_type='student'
+        ).distinct()
+
+
+
 
 class RequestSessionForm(forms.ModelForm):
     """Form for creating or updating RequestSession with multiple days."""
@@ -193,3 +279,4 @@ class RequestSessionForm(forms.ModelForm):
         # Add new days
         for day in days:
             RequestSessionDay.objects.create(request_session=request_session, day_of_week=day)
+

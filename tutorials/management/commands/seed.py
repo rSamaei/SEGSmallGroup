@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
+from datetime import date, timedelta
 
-from tutorials.models import User, Subject, RequestSession, Match, TutorSubject, RequestSessionDay
+from tutorials.models import User, Subject, RequestSession, Match, TutorSubject, RequestSessionDay, Invoice
 
 import pytz
 from faker import Faker
@@ -17,8 +18,8 @@ user_fixtures = [
 
 # for subject data
 subject_names = [
-    'Mathematics', 'Physics', 'Chemistry', 'Biology', 'English', 
-    'History', 'Computer Science', 'Art', 'Music', 'Physical Education'
+    'Discrete Maths', 'Machine Learning', 'C++', 'Python', 'Java', 
+    'SQL', 'Neural Networks', 'Assembly', 'Rust', 'C'
 ]
 
 class Command(BaseCommand):
@@ -28,10 +29,11 @@ class Command(BaseCommand):
     DEFAULT_PASSWORD = 'Password123'
     help = 'Seeds the database with sample data'
 
-    def __init__(self):
-        self.faker = Faker('en_GB')
+    # def __init__(self):
+    #     self.faker = Faker('en_GB')
 
     def handle(self, *args, **options):
+        self.faker = Faker('en_GB')
         self.create_users()
         self.users = User.objects.all()
         self.create_subjects()
@@ -87,17 +89,26 @@ class Command(BaseCommand):
     def create_request_sessions(self):
         students = User.objects.filter(user_type='student')
         subjects = Subject.objects.all()
+        
+        # Generate dates for the next 30 days
+        today = date.today()
+        possible_dates = [today + timedelta(days=x) for x in range(30)]
 
         for student in students:    # create a request session for each student in the database
             for _ in range(randint(1, 3)):  # fill the database with each student requesting 1 to 3 subjects
                 subject = choice(subjects)
                 proficiency = choice(['Beginner', 'Intermediate', 'Advanced'])
                 frequency = choice([0.5, 1.0, 2.0])
+                session_date = choice(possible_dates)  # Randomly pick a date
                 # if the student requesting that subject hasn't already been generated create it 
                 request_session, created = RequestSession.objects.get_or_create(
                     student=student,
                     subject=subject,
-                    defaults={'proficiency': proficiency, 'frequency': frequency}
+                    defaults={
+                        'proficiency': proficiency, 
+                        'frequency': frequency,
+                        'date_requested': session_date  # Add the date
+                    }
                 )
                 if created:
                     if frequency == 0.5 or frequency == 1.0:  # Fortnightly / Weekly
@@ -145,14 +156,70 @@ class Command(BaseCommand):
             # if there are tutors available for this subject, match one to the session
             if tutors_for_subject.exists():
                 tutor = choice(tutors_for_subject)  # randomly choose a tutor
-                Match.objects.get_or_create(
+                tempMatch = Match.objects.get_or_create(
                     request_session=session,
                     tutor=tutor
                 )
+                generateInvoice(tempMatch[0])
             else:
                 print(f"No tutor available for subject: {session.subject.name}")
 
         print("Matches seeded.")
+        print("Invoices seeded.")
+    
+    def create_matches(self):
+        sessions = list(RequestSession.objects.all())
+        half_sessions = len(sessions) // 2
+        selected_sessions = self.faker.random_elements(elements=sessions, length=half_sessions, unique=True)
+
+        for session in selected_sessions:
+            tutors = User.objects.filter(user_type='tutor')  # Get all tutors
+            tutors_for_subject = tutors.filter(
+                tutor_subjects__subject=session.subject  # Filter tutors who can teach the requested subject
+            )
+
+            # If there are tutors available for this subject, match one to the session
+            if tutors_for_subject.exists():
+                tutor = choice(tutors_for_subject)  # Randomly choose a tutor
+                tempMatch, created = Match.objects.get_or_create(
+                    request_session=session,
+                    tutor=tutor,
+                    defaults={'tutor_approved': choice([True, False])}  # Randomly set tutor_approved
+                )
+                if created:
+                    generateInvoice(tempMatch)  # Generate an invoice for the created match
+            else:
+                print(f"No tutor available for subject: {session.subject.name}")
+
+        print("Matches seeded.")
+        print("Invoices seeded.")
+
+
+def generateInvoice(session_match: Match):
+    # Only proceed if the tutor has approved the match
+    if session_match.tutor_approved:
+        selectedTutor = session_match.tutor
+        
+        # Get the TutorSubject related to this tutor and the subject of the request session
+        tutorSub = TutorSubject.objects.filter(
+            tutor=selectedTutor,
+            subject=session_match.request_session.subject,
+        ).first()  # Use .first() to get the first matching entry (or None if not found)
+
+        if tutorSub:
+            # Calculate the payment amount based on the tutor's price, frequency, and fixed multiplier
+            tempPrice = round(tutorSub.price * 27 * session_match.request_session.frequency, 2)
+            
+            # Create the invoice for this match
+            tempInvoice = Invoice.objects.create(
+                match=session_match,
+                payment=tempPrice
+            )
+            
+    else:
+        print(f"Match ID {session_match.id} not approved by the tutor, skipping invoice creation.")
+
+
 
 def create_username(first_name, last_name):
     return '@' + first_name.lower() + last_name.lower()

@@ -34,5 +34,22 @@ urlpatterns = [
     path('sign_up/', views.SignUpView.as_view(), name='sign_up'),
     path('calendar/', views.calendar_view, name='calendar_view'),
     path('registerAdmin/',views.registerNewAdmin, name='registerAdmin'),
+
+    path('view_all_users/', views.view_all_users, name='view_all_users'),
+    path('view_all_tutor_subjects/', views.view_all_tutor_subjects, name='view_all_tutor_subjects'),
+    path('student/unmatched-requests/', views.student_view_unmatched_requests, name='student_view_unmatched_requests'),
+    path('add-new-subject/', views.add_new_subject, name='add_new_subject'),
+    path('view_matched_requests/', views.view_matched_requests, name='view_matched_requests'),
+    path('delete_tutor_subject/<int:subject_id>/', views.delete_tutor_subject, name='delete_tutor_subject'),
+
+    path('submit-request/', views.student_submits_request, name='student_submits_request'),
+
+
+    path('invoice/',views.invoice, name='invoice'),
+
+    path('pending-approvals/', views.pending_approvals, name='pending_approvals'),
+    path('approve-match/<int:match_id>/', views.approve_match, name='approve_match'),
+
+
 ]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
