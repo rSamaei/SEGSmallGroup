@@ -441,50 +441,38 @@ def invoice(request):
                     tutor=selectedTutor,
                     tutor_approved=True  # Only approved matches
                 )
-                count = allMatches.count()
-                listOfSessions = None
-
-                if count > 0:
-                    listOfSessions = {}
-                    for match in allMatches:
-                        tutorSub = TutorSubject.objects.filter(
-                            tutor=selectedTutor,
-                            subject=match.request_session.subject,
-                        )
-                        if tutorSub.exists():
-                            listOfSessions[match] = round(tutorSub[0].price * 27 * match.request_session.frequency, 2)
-
-                context = {'form': form, 'request_sessions': listOfSessions}
+                listOfPaidInvoice = []
+                listOfUnpaidInvoices = []
+                for match in allMatches:
+                    inv = Invoice.objects.filter(match = match)
+                    if(inv[0].payment_status == 'paid'):
+                        listOfPaidInvoice.append(inv[0])
+                    else:
+                        listOfUnpaidInvoices.append(inv[0])
+                context = {'form' : form, 'paid_sessions': listOfPaidInvoice, 'unpaid_sessions' : listOfUnpaidInvoices}
                 return render(request, 'invoice.html', context)
             else:
                 form = SelectTutorForInvoice()
-                context = {'form': form, 'request_sessions': None}
+                context = {'form' : form, 'paid_sessions':None}
                 return render(request, 'invoice.html', context)
 
         elif request.method == "POST":
-            price = request.POST['price']
-            matchID = request.POST['session']
-            session_match = get_object_or_404(Match, id=matchID)
+            paymentMatchID = request.POST['session']
+            session_match = get_object_or_404(Match, id=paymentMatchID)
+            tempInvoice = Invoice.objects.get(
+                match = session_match
+            )
+            tempInvoice.payment_status = 'paid'
+            tempInvoice.save()
             
-            try:
-                if session_match.tutor_approved:  # Only create if approved
-                    Invoice.objects.create(
-                        match=session_match,
-                        payment=price
-                    )
-            except Exception as e:
-                print(e)
-                form = SelectTutorForInvoice()
-                context = {'form': form, 'request_sessions': None}
-                return render(request, 'invoice.html', context)
 
             form = SelectTutorForInvoice()
-            context = {'form': form, 'request_sessions': None}
+            context = {'form' : form, 'paid_sessions':None}
             return render(request, 'invoice.html', context)
 
         else:
             form = SelectTutorForInvoice()
-            context = {'form': form, 'request_sessions': None}
+            context = {'form' : form, 'paid_sessions':None}
             return render(request, 'invoice.html', context)
 
     elif request.user.is_tutor:
@@ -492,25 +480,40 @@ def invoice(request):
             tutor=request.user,
             tutor_approved=True  # Only approved matches
         )
-        listOfInvoice = {}
+        listOfPaidInvoice = []
+        listOfUnpaidInvoices = []
         for match in allMatches:
-            inv = Invoice.objects.filter(match=match)
-            if inv.exists():
-                listOfInvoice[match] = inv[0].payment
-        context = {'form': form, 'request_sessions': listOfInvoice}
+            inv = Invoice.objects.filter(match = match)
+            if(inv[0].payment_status == 'paid'):
+                listOfPaidInvoice.append(inv[0])
+            else:
+                listOfUnpaidInvoices.append(inv[0])
+        context = {'form' : form, 'paid_sessions': listOfPaidInvoice, 'unpaid_sessions' : listOfUnpaidInvoices}
         return render(request, 'invoice.html', context)
 
     elif request.user.is_student:
+        if request.method == "POST":
+            paymentMatchID = request.POST['session']
+            session_match = get_object_or_404(Match, id=paymentMatchID)
+            tempInvoice = Invoice.objects.get(
+                match = session_match
+            )
+            tempInvoice.payment_status = 'waiting'
+            tempInvoice.save()
+
         allMatches = Match.objects.filter(
             request_session__student=request.user,
             tutor_approved=True  # Only approved matches
         )
-        listOfInvoice = {}
+        listOfPaidInvoice = []
+        listOfUnpaidInvoices = []
         for match in allMatches:
-            inv = Invoice.objects.filter(match=match)
-            if inv.exists():
-                listOfInvoice[match] = inv[0].payment
-        context = {'form': form, 'request_sessions': listOfInvoice}
+            inv = Invoice.objects.filter(match = match)
+            if(inv[0].payment_status == 'unpaid'):
+                listOfUnpaidInvoices.append(inv[0])
+            else:
+                listOfPaidInvoice.append(inv[0])
+        context = {'form' : form, 'paid_sessions': listOfPaidInvoice, 'unpaid_sessions' : listOfUnpaidInvoices}
         return render(request, 'invoice.html', context)
 
 

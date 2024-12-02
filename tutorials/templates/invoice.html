@@ -12,43 +12,73 @@
       <button type="submit" class="btn btn-primary">Select Tutor</button>
     </form>
     {% endif %}
-    {% if request_sessions == None %}
-      <h1>No invoices to view</h1>
-    {% endif %}
-    
-    {% if request_sessions %}
-      <div class="row gy-4">
-      {% for key, value in request_sessions.items %}
+    <div class="row gy-4">
+    {% if paid_sessions%}
       <div class="col-md-6">
+        <h8><b>Paid invoices</b></h8>
+        {% for key in paid_sessions %}
+          <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Details</h5>
+                {% if user.is_student %}
+                  <p class="card-text">Tutor: {{ key.match.tutor.first_name }} {{ key.match.tutor.last_name }}</p>
+                {% else %}
+                  <p class="card-text">Student: {{ key.match.request_session.student.first_name }} {{ key.match.request_session.student.last_name }}</p>
+                {% endif %}
+                <p class="card-text">Subject: {{ key.match.request_session.subject.name }}</p>
+                <p>Frequency: {{ key.match.request_session.frequency }}</p>
+                <div class="card text-center">
+                  <p class="card-text">Total Payment : £{{ key.payment }}</p>
+                </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% if unpaid_sessions %}
+      <div class="col-md-6">
+      <h7><b>Unpaid invoices</b></h7>
+      {% for key in unpaid_sessions %}
         <div class="card">
           <div class="card-body">
               <h5 class="card-title">Details</h5>
               {% if user.is_student %}
-                <p class="card-text">Tutor: {{ key.tutor.first_name }} {{ key.tutor.last_name }}</p>
+                <p class="card-text">Tutor: {{ key.match.tutor.first_name }} {{ key.match.tutor.last_name }}</p>
               {% else %}
-                <p class="card-text">Student: {{ key.request_session.student.first_name }} {{ key.request_session.student.last_name }}</p>
+                <p class="card-text">Student: {{ key.match.request_session.student.first_name }} {{ key.match.request_session.student.last_name }}</p>
               {% endif %}
-              <p class="card-text">Subject: {{ key.request_session.subject.name }}</p>
-              <p>Frequency: {{ key.request_session.frequency }}</p>
+              <p class="card-text">Subject: {{ key.match.request_session.subject.name }}</p>
+              <p>Frequency: {{ key.match.request_session.frequency }}</p>
               <div class="card text-center">
-                <p class="card-text">Total Payment : £{{ value }}</p>
+                <p class="card-text">Total Payment : £{{ key.payment }}</p>
               </div>
-              <!-- <div class="col-md-6">
-                <form method="post">
-                  {% csrf_token %}
-                  <input type="hidden" name="session" value="{{key.id}}">
-                  <input type="hidden" name="price" value="{{value}}">
-                  <button type="submit" class="btn btn-primary">View Invoice</button>
-                </form>
-              </div> -->
+              {% if user.is_student %}
+                <div class="col-md-6">
+                  <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="session" value="{{ key.match.id }}">
+                    <button type="submit" class="btn btn-primary">Pay</button>
+                  </form>
+                </div>
+              {% endif %}
+              {% if user.is_admin %}
+              <p class="card-text">Payment Status: {{key.payment_status}}</p>
+                <div class="col-md-6">
+                  {% if key.payment_status == 'waiting' %}
+                  <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="session" value="{{ key.match.id }}">
+                    <button type="submit" class="btn btn-primary">Confirm Payment</button>
+                  </form>
+                  {% endif %}
+                </div>
+              {% endif %}
           </div>
-          
         </div>
-      </div>
       {% endfor %}
       </div>
     {% endif %}
-    
+    </div>
   </div>
 </div>
 {% endblock %}
