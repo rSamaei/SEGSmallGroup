@@ -143,8 +143,15 @@ class Match(models.Model):
 class Invoice(models.Model):
     """Model used to represent invoices"""
 
+    USER_PAYMENT_CHOICES = (
+        ('paid', 'Paid'),
+        ('waiting', 'Waiting for confirmation'),
+        ('unpaid', 'Unpaid'),
+    )
+
     payment = models.DecimalField(max_digits=10, decimal_places=2)
     match = models.ForeignKey(Match, on_delete=models.CASCADE, unique=True)
+    payment_status = models.CharField(max_length=10, choices=USER_PAYMENT_CHOICES, default='unpaid')
     class Meta:
         abstract = False
 
