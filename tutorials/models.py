@@ -76,8 +76,6 @@ class Subject(models.Model):
         return self.name
 
 
-
-
 class RequestSession(models.Model):
     """Model for a session request made by a student"""
 
@@ -135,9 +133,10 @@ class Match(models.Model):
 
     request_session = models.OneToOneField(RequestSession, on_delete=models.CASCADE)
     tutor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='matches')
+    tutor_approved = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"Match: {self.request_session} with Tutor {self.tutor.username}"
+        return f"Match: {self.request_session} with Tutor {self.tutor.username} (Approved: {self.tutor_approved})"
 
 
 class Invoice(models.Model):

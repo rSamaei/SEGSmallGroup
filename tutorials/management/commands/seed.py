@@ -166,18 +166,60 @@ class Command(BaseCommand):
 
         print("Matches seeded.")
         print("Invoices seeded.")
+    
+    def create_matches(self):
+        sessions = list(RequestSession.objects.all())
+        half_sessions = len(sessions) // 2
+        selected_sessions = self.faker.random_elements(elements=sessions, length=half_sessions, unique=True)
 
-def generateInvoice(session_match:Match):
-    selectedTutor = session_match.tutor
-    tutorSub = TutorSubject.objects.filter(
-        tutor = selectedTutor,
-        subject = session_match.request_session.subject,
-    )
-    tempPrice = round(tutorSub[0].price * 27 * session_match.request_session.frequency, 2)
-    tempInvoice = Invoice.objects.create(
-        match = session_match,
-        payment = tempPrice
-    )
+        for session in selected_sessions:
+            tutors = User.objects.filter(user_type='tutor')  # Get all tutors
+            tutors_for_subject = tutors.filter(
+                tutor_subjects__subject=session.subject  # Filter tutors who can teach the requested subject
+            )
+
+            # If there are tutors available for this subject, match one to the session
+            if tutors_for_subject.exists():
+                tutor = choice(tutors_for_subject)  # Randomly choose a tutor
+                tempMatch, created = Match.objects.get_or_create(
+                    request_session=session,
+                    tutor=tutor,
+                    defaults={'tutor_approved': choice([True, False])}  # Randomly set tutor_approved
+                )
+                if created:
+                    generateInvoice(tempMatch)  # Generate an invoice for the created match
+            else:
+                print(f"No tutor available for subject: {session.subject.name}")
+
+        print("Matches seeded.")
+        print("Invoices seeded.")
+
+
+def generateInvoice(session_match: Match):
+    # Only proceed if the tutor has approved the match
+    if session_match.tutor_approved:
+        selectedTutor = session_match.tutor
+        
+        # Get the TutorSubject related to this tutor and the subject of the request session
+        tutorSub = TutorSubject.objects.filter(
+            tutor=selectedTutor,
+            subject=session_match.request_session.subject,
+        ).first()  # Use .first() to get the first matching entry (or None if not found)
+
+        if tutorSub:
+            # Calculate the payment amount based on the tutor's price, frequency, and fixed multiplier
+            tempPrice = round(tutorSub.price * 27 * session_match.request_session.frequency, 2)
+            
+            # Create the invoice for this match
+            tempInvoice = Invoice.objects.create(
+                match=session_match,
+                payment=tempPrice
+            )
+            
+    else:
+        print(f"Match ID {session_match.id} not approved by the tutor, skipping invoice creation.")
+
+
 
 def create_username(first_name, last_name):
     return '@' + first_name.lower() + last_name.lower()

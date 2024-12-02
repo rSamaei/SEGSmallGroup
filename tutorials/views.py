@@ -25,6 +25,7 @@ from .forms import AddTutorSubjectForm
 from django.utils.timezone import now
 from django.db import IntegrityError
 
+
 @login_required
 def dashboard(request):
     """Display dashboard based on user type."""
@@ -32,69 +33,63 @@ def dashboard(request):
     context = {'user': current_user}
 
     if current_user.is_admin:
-        # Get count of unmatched requests
-        unmatched_count = RequestSession.objects.filter(
-            match__isnull=True
-        ).count()
-
-        #Total number of Users
+        unmatched_count = RequestSession.objects.filter(match__isnull=True).count()
         total_users_count = User.objects.count()
-        #Total number of matched requests
         matched_requests_count = Match.objects.count()
+        pending_approvals_count = Match.objects.filter(tutor_approved=False).count()
 
         context.update({
             'unmatched_count': unmatched_count,
             'is_admin_view': True,
             'total_users_count': total_users_count,
             'matched_requests_count': matched_requests_count,
-
-        })
+            'pending_approvals_count': pending_approvals_count,
+        })  
 
     elif current_user.is_tutor:
-        # Get count of the tutor's subject availability
         total_subjects_count = TutorSubject.objects.filter(tutor=current_user).count()
-        #Get number of matched requestes for the tutor
-        matched_requests_count = Match.objects.filter(tutor=request.user).count()
+        matched_requests_count = Match.objects.filter(tutor=current_user, tutor_approved=True).count()
+        pending_approvals_count = Match.objects.filter(tutor=current_user, tutor_approved=False).count()
 
         context.update(get_calendar_context(current_user))
         context.update({
             'total_subjects_count': total_subjects_count,
-            'is_tutor_view': current_user.is_tutor,
+            'is_tutor_view': True,
             'matched_requests_count': matched_requests_count,
+            'pending_approvals_count': pending_approvals_count,
         })
 
     else:
-        # Get the count of the current user's unmatched requests
+        # Student view context
         unmatched_student_requests = RequestSession.objects.filter(
             student=current_user,
             match__isnull=True
         ).count()
-        #Get number of matched requestes for the student
-        matched_requests_count = Match.objects.filter(request_session__student=request.user).count()
+        matched_requests_count = Match.objects.filter(request_session__student=current_user, tutor_approved=True).count()
 
-        # Add calendar context for non-admin users
         context.update(get_calendar_context(current_user))
         context.update({
             'unmatched_student_requests': unmatched_student_requests,
-            'is_student_view': current_user.is_student,
+            'is_student_view': True,
             'matched_requests_count': matched_requests_count,
         })
 
     return render(request, 'dashboard.html', context)
+
 
 @login_required
 def view_matched_requests(request):
     """Display a table of matched requests for a tutor, student, or admin."""
     
     if request.user.is_admin:
-        # Admin can see all matched requests
-        matched_requests = Match.objects.all()
+        # Admin can see all approved matched requests
+        matched_requests = Match.objects.filter(tutor_approved=True)
     elif request.user.is_tutor:
-        # Tutors can see only the requests where they are the tutor
-        matched_requests = Match.objects.filter(tutor=request.user)
+        # Tutors can see only approved matches where they are the tutor
+        matched_requests = Match.objects.filter(tutor=request.user, tutor_approved=True)
     else:
-        # Students can see only the requests where they are the student
-        matched_requests = Match.objects.filter(request_session__student=request.user)
+        # Students can see only approved matches where they are the student
+        matched_requests = Match.objects.filter(request_session__student=request.user, tutor_approved=True)
     
     # Fetch the relevant details to be shown in the table
     matched_requests_data = [
@@ -110,6 +105,7 @@ def view_matched_requests(request):
     ]
     
     return render(request, 'view_matched_requests.html', {'matched_requests_data': matched_requests_data})
+
 
 @login_required
 def view_all_tutor_subjects(request):
@@ -297,6 +293,66 @@ def admin_requested_sessions(request):
     })
 
 @login_required
+def pending_approvals(request):
+    """List pending matches for tutors or admins."""
+    current_user = request.user
+
+    if current_user.is_admin:
+        # Admin: See all pending requests
+        matches = Match.objects.filter(tutor_approved=False)
+        can_approve = False  # Admins cannot approve requests
+    elif current_user.is_tutor:
+        # Tutor: See only their pending requests
+        matches = Match.objects.filter(tutor=current_user, tutor_approved=False)
+        can_approve = True  # Tutors can approve their requests
+    else:
+        # Redirect non-admins and non-tutors
+        return redirect('dashboard')
+
+    matches_data = [
+        {
+            'id': match.id,
+            'student': match.request_session.student.username,
+            'tutor_username': match.tutor.username,
+            'subject': match.request_session.subject.name,
+            'proficiency': match.request_session.proficiency,
+            'frequency': Frequency.to_string(match.request_session.frequency),
+            'date_requested': match.request_session.date_requested,
+        }
+        for match in matches
+    ]
+
+    return render(
+        request,
+        'pending_approvals.html',
+        {'matches_data': matches_data, 'can_approve': can_approve}
+    )
+
+@login_required
+def approve_match(request, match_id):
+    """Approve a match, setting tutor_approved=True."""
+    if not request.user.is_tutor:
+        return redirect('dashboard')  # Only tutors can approve matches
+
+    try:
+        match = Match.objects.get(id=match_id, tutor=request.user)
+    except Match.DoesNotExist:
+        # Match doesn't exist or isn't assigned to this tutor
+        return redirect('pending_approvals')
+
+    if request.method == "POST":
+        # Approve the match
+        match.tutor_approved = True
+        match.save()
+        generateInvoice(Match.objects.get(id = match_id))
+        messages.success(request, "Match approved successfully.")
+        return redirect('pending_approvals')
+
+    return redirect('dashboard')
+
+
+
+@login_required
 def admin_requested_session_highlighted(request, request_id):
     """Display detailed view of a specific request."""
     if not request.user.is_admin:
@@ -333,7 +389,6 @@ def create_match(request, request_id):
         if form.is_valid():
             try:
                 tempMatch = form.save(request_session=session)
-                generateInvoice(tempMatch)
                 messages.success(request, 'Match created successfully')
                 return redirect('admin_requested_sessions')
             except Exception as e:
@@ -374,9 +429,6 @@ def registerNewAdmin(request):
     
     return render(request, 'registerAdmin.html', {'form':form})
 
-
-
-
 @login_required
 def invoice(request):
     form = None
@@ -386,7 +438,8 @@ def invoice(request):
             if form.is_valid():
                 selectedTutor = form.cleaned_data.get('tutor')
                 allMatches = Match.objects.filter(
-                    tutor = selectedTutor
+                    tutor=selectedTutor,
+                    tutor_approved=True  # Only approved matches
                 )
                 listOfPaidInvoice = []
                 listOfUnpaidInvoices = []
@@ -416,16 +469,16 @@ def invoice(request):
             form = SelectTutorForInvoice()
             context = {'form' : form, 'paid_sessions':None}
             return render(request, 'invoice.html', context)
-            
 
         else:
             form = SelectTutorForInvoice()
             context = {'form' : form, 'paid_sessions':None}
             return render(request, 'invoice.html', context)
-    
+
     elif request.user.is_tutor:
         allMatches = Match.objects.filter(
-            tutor = request.user
+            tutor=request.user,
+            tutor_approved=True  # Only approved matches
         )
         listOfPaidInvoice = []
         listOfUnpaidInvoices = []
@@ -437,7 +490,7 @@ def invoice(request):
                 listOfUnpaidInvoices.append(inv[0])
         context = {'form' : form, 'paid_sessions': listOfPaidInvoice, 'unpaid_sessions' : listOfUnpaidInvoices}
         return render(request, 'invoice.html', context)
-    
+
     elif request.user.is_student:
         if request.method == "POST":
             paymentMatchID = request.POST['session']
@@ -449,7 +502,8 @@ def invoice(request):
             tempInvoice.save()
 
         allMatches = Match.objects.filter(
-            request_session__student = request.user
+            request_session__student=request.user,
+            tutor_approved=True  # Only approved matches
         )
         listOfPaidInvoice = []
         listOfUnpaidInvoices = []
@@ -463,36 +517,28 @@ def invoice(request):
         return render(request, 'invoice.html', context)
 
 
+def generateInvoice(session_match: Match):
+    if not session_match.tutor_approved:
+        return
     
-    
-    
-def generateInvoice(session_match:Match):
     selectedTutor = session_match.tutor
     tutorSub = TutorSubject.objects.filter(
-        tutor = selectedTutor,
-        subject = session_match.request_session.subject,
+        tutor=selectedTutor,
+        subject=session_match.request_session.subject,
     )
-    tempPrice = round(tutorSub[0].price * 27 * session_match.request_session.frequency, 2)
-    tempInvoice = Invoice.objects.create(
-        match = session_match,
-        payment = tempPrice
-    )
-    
-
-
-
-
-
-
-
-
+    if tutorSub.exists():
+        tempPrice = round(tutorSub[0].price * 27 * session_match.request_session.frequency, 2)
+        Invoice.objects.create(
+            match=session_match,
+            payment=tempPrice
+        )
+  
 
 @login_prohibited
 def home(request):
     """Display the application's start/home screen."""
 
     return render(request, 'home.html')
-
 
 class LoginProhibitedMixin:
     """Mixin that redirects when a user is logged in."""
@@ -519,7 +565,6 @@ class LoginProhibitedMixin:
             )
         else:
             return self.redirect_when_logged_in_url
-
 
 class LogInView(LoginProhibitedMixin, View):
     """Display login screen and handle user login."""
@@ -550,7 +595,6 @@ class LogInView(LoginProhibitedMixin, View):
 
         form = LogInForm()
         return render(self.request, 'log_in.html', {'form': form, 'next': self.next})
-
 
 def log_out(request):
     """Log out the current user"""
@@ -671,7 +715,6 @@ class PasswordView(LoginRequiredMixin, FormView):
         messages.add_message(self.request, messages.SUCCESS, "Password updated!")
         return reverse('dashboard')
 
-
 class ProfileUpdateView(LoginRequiredMixin, UpdateView):
     """Display user profile editing screen, and handle profile modifications."""
 
@@ -688,7 +731,6 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
         """Return redirect URL after successful update."""
         messages.add_message(self.request, messages.SUCCESS, "Profile updated!")
         return reverse(settings.REDIRECT_URL_WHEN_LOGGED_IN)
-
 
 class SignUpView(LoginProhibitedMixin, FormView):
     """Display the sign up screen and handle sign ups."""

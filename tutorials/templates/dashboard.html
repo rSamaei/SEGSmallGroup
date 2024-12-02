@@ -4,9 +4,17 @@
   <div class="row">
     <div class="col-12">
       <h1>Welcome to your dashboard {{ user.username }}</h1>
+      {% if is_admin_view %}
+        <h2>Admin</h2>
+      {% elif is_tutor_view %}
+        <h2>Tutor</h2>
+      {% else %}
+        <h2>Student</h2>
+      {% endif %}
+
     </div>
       {% if is_admin_view %}
-        <h2>Admin Dashboard</h2>
+        <!-- <h2>Admin Dashboard</h2> -->
         <!-- View unmatched requests  -->
         <div class="col-md-4">
             <div class="card mb-3">
@@ -38,15 +46,29 @@
               </a>
             </div>
           </div>
-        </div>        
+        </div> 
+        
+        <!-- View pending requests for tutors  -->
+        <div class="col-md-4">
+          <div class="card mb-3">
+              <div class="card-body">
+                  <h5 class="card-title">Pending Requests</h5>
+                  <p class="card-text">
+                      <span class="h2">{{ unmatched_count }}</span><br>
+                      requests awaiting tutor approval
+                  </p>
+                  <a href="{% url 'pending_approvals' %}" class="btn btn-primary">View Pending Requests</a>
+              </div>
+          </div>
+        </div>
 
       {% else %}
 
         <!-- Student/Tutor Dashboard -->
         <div class="col-md-8">
-          <h2>Dashboard</h2>
-          <!-- Student  -->
+        <!-- Student  -->
         {% if is_student_view %}
+        <!-- Student views unmatched requests -->
         <div class="col-md-4">
           <div class="card mb-3">
             <div class="card-body">
@@ -80,7 +102,23 @@
             </div>
           </div>
         </div>
+
+        <!-- Box for Pending Approvals for tutors -->
+        <div class="col-md-4">
+          <div class="card mb-3">
+              <div class="card-body">
+                  <h5 class="card-title">Pending Approvals</h5>
+                  <p class="card-text">
+                      <span class="h2">{{ pending_approvals_count }}</span><br>
+                      matches require your approval
+                  </p>
+                  <a href="{% url 'pending_approvals' %}" class="btn btn-warning">View Pending Approvals</a>
+              </div>
+          </div>
+        </div>
+
         {% endif %}
+
         </div>
         <div class="col-md-4">
           <h2>Mini Calendar</h2>
@@ -114,6 +152,7 @@
           </table>
           <a href="{% url 'calendar_view' %}" class="btn btn-secondary mt-3">View Full Calendar</a>
         </div>
+
     {% endif %}
     <!-- Box to show matched requests -->
     <div class="col-md-4">
