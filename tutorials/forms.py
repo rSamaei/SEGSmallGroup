@@ -79,7 +79,6 @@ class LogInForm(forms.Form):
             user = authenticate(username=username, password=password)
         return user
 
-
 class UserForm(forms.ModelForm):
     """Form to update user profiles."""
 
@@ -112,7 +111,6 @@ class NewPasswordMixin(forms.Form):
         if new_password != password_confirmation:
             self.add_error('password_confirmation', 'Confirmation does not match password.')
 
-
 class PasswordForm(NewPasswordMixin):
     """Form enabling users to change their password."""
 
@@ -144,7 +142,6 @@ class PasswordForm(NewPasswordMixin):
             self.user.set_password(new_password)
             self.user.save()
         return self.user
-
 
 class SignUpForm(NewPasswordMixin, forms.ModelForm):
     """Form enabling unregistered users to sign up."""
@@ -221,14 +218,18 @@ class NewAdminForm(NewPasswordMixin, forms.ModelForm):
         model = User
         fields = ['first_name', 'last_name', 'username', 'email']
 
-
-
 class SelectTutorForInvoice(forms.Form):
-    tutor = forms.ModelChoiceField(queryset=None, empty_label="Unselected",widget=forms.Select(attrs={'class': 'form-select mb-3'}))
+    tutor = forms.ModelChoiceField(
+        queryset=None, 
+        empty_label="Unselected",
+        widget=forms.Select(attrs={'class': 'form-select mb-3'})
+    )
 
-    def __init__(self , *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        matched_user_ids = Match.objects.values_list('tutor_id', flat=True)
+        matched_user_ids = Match.objects.filter(
+            tutor_approved=True  # Only include approved matches
+        ).values_list('tutor_id', flat=True)
         self.fields['tutor'].queryset = User.objects.filter(id__in=matched_user_ids).distinct()
 
 class SelectStudentsForInvoice(forms.Form):
@@ -246,6 +247,8 @@ class SelectStudentsForInvoice(forms.Form):
             id__in=student_ids,
             user_type='student'
         ).distinct()
+
+
 
 
 class RequestSessionForm(forms.ModelForm):
