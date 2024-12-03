@@ -105,7 +105,7 @@ class RequestSession(models.Model):
         return f"{self.student.username} - {self.subject.name}"
     
     def get_frequency_display(self):
-        """Return human-readable frequency."""
+        #Return human-readable frequency.
         return Frequency.to_string(float(self.frequency))
 
 
