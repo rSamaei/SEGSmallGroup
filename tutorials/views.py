@@ -35,7 +35,7 @@ def dashboard(request):
     if current_user.is_admin:
         unmatched_count = RequestSession.objects.filter(match__isnull=True).count()
         total_users_count = User.objects.count()
-        matched_requests_count = Match.objects.count()
+        matched_requests_count = Match.objects.filter(tutor_approved=True).count()
         pending_approvals_count = Match.objects.filter(tutor_approved=False).count()
 
         context.update({
@@ -165,12 +165,13 @@ def calendar_view(request):
     """Display a full calendar with matched schedules."""
     current_user = request.user
 
-    # Get month and year from request parameters
+    # Get month, year and filter parameters from request
     month = int(request.GET.get('month', date.today().month))
     year = int(request.GET.get('year', date.today().year))
+    selected_user = request.GET.get('user')
 
     # Use the helper function to get calendar context
-    calendar_context = get_calendar_context(current_user, month, year)
+    calendar_context = get_calendar_context(current_user, month, year, selected_user)
 
     # Calculate previous and next month
     prev_month = month - 1 if month > 1 else 12
@@ -188,6 +189,8 @@ def calendar_view(request):
         'prev_year': prev_year,
         'next_month': next_month,
         'next_year': next_year,
+        'users': User.objects.exclude(user_type='admin') if current_user.is_admin else None,  # Add users for filter
+        'selected_user': selected_user,  # Add selected user
     }
 
     return render(request, 'calendar.html', context)
@@ -654,33 +657,51 @@ def get_recurring_dates(session, year, month):
 
     return dates
 
-def get_calendar_context(user, month=None, year=None):
+def get_calendar_context(user, month=None, year=None, selected_user=None):
     """Get calendar context for the user."""
     if month is None:
         month = date.today().month
     if year is None:
         year = date.today().year
-    
-    # Filter sessions based on user type
+
+    # Filter sessions based on user type with tutor_approved check
     if user.user_type == 'student':
         sessions = RequestSession.objects.filter(
             student=user,
-            match__isnull=False
+            match__isnull=False,
+            match__tutor_approved=True
         ).select_related('match', 'subject', 'match__tutor').prefetch_related('days')
     elif user.user_type == 'tutor':
         sessions = RequestSession.objects.filter(
-            match__tutor=user
+            match__tutor=user,
+            match__tutor_approved=True
         ).select_related('match', 'subject', 'student').prefetch_related('days')
     else:
-        sessions = RequestSession.objects.filter(
-            match__isnull=False
-        ).select_related('match', 'subject', 'student', 'match__tutor').prefetch_related('days')
+        # Admin view with optional user filter
+        if selected_user:
+            selected_user_obj = User.objects.get(username=selected_user)
+            if selected_user_obj.is_student:
+                sessions = RequestSession.objects.filter(
+                    student=selected_user_obj,
+                    match__isnull=False,
+                    match__tutor_approved=True
+                )
+            elif selected_user_obj.is_tutor:
+                sessions = RequestSession.objects.filter(
+                    match__tutor=selected_user_obj,
+                    match__tutor_approved=True
+                )
+        else:
+            sessions = RequestSession.objects.filter(
+                match__isnull=False,
+                match__tutor_approved=True
+            ).select_related('match', 'subject', 'student', 'match__tutor').prefetch_related('days')
 
     # Get recurring dates for each session
     highlighted_dates = set()
     for session in sessions:
         recurring_dates = get_recurring_dates(session, year, month)
-        session.recurring_dates = recurring_dates  # Add to session object
+        session.recurring_dates = recurring_dates
         highlighted_dates.update(recurring_dates)
     
     return {

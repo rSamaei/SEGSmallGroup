@@ -156,31 +156,6 @@ class Command(BaseCommand):
             # if there are tutors available for this subject, match one to the session
             if tutors_for_subject.exists():
                 tutor = choice(tutors_for_subject)  # randomly choose a tutor
-                tempMatch = Match.objects.get_or_create(
-                    request_session=session,
-                    tutor=tutor
-                )
-                generateInvoice(tempMatch[0])
-            else:
-                print(f"No tutor available for subject: {session.subject.name}")
-
-        print("Matches seeded.")
-        print("Invoices seeded.")
-    
-    def create_matches(self):
-        sessions = list(RequestSession.objects.all())
-        half_sessions = len(sessions) // 2
-        selected_sessions = self.faker.random_elements(elements=sessions, length=half_sessions, unique=True)
-
-        for session in selected_sessions:
-            tutors = User.objects.filter(user_type='tutor')  # Get all tutors
-            tutors_for_subject = tutors.filter(
-                tutor_subjects__subject=session.subject  # Filter tutors who can teach the requested subject
-            )
-
-            # If there are tutors available for this subject, match one to the session
-            if tutors_for_subject.exists():
-                tutor = choice(tutors_for_subject)  # Randomly choose a tutor
                 tempMatch, created = Match.objects.get_or_create(
                     request_session=session,
                     tutor=tutor,
@@ -193,7 +168,6 @@ class Command(BaseCommand):
 
         print("Matches seeded.")
         print("Invoices seeded.")
-
 
 def generateInvoice(session_match: Match):
     # Only proceed if the tutor has approved the match
