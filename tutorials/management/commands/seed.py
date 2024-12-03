@@ -216,8 +216,6 @@ def generateInvoice(session_match: Match):
                 payment=tempPrice
             )
             
-    else:
-        print(f"Match ID {session_match.id} not approved by the tutor, skipping invoice creation.")
 
 
 
