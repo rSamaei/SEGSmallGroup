@@ -106,7 +106,9 @@ class RequestSession(models.Model):
     
     def get_frequency_display(self):
         """Return human-readable frequency."""
-        return Frequency.to_string(float(self.frequency))
+        # Use the defined choices to get the display value
+        frequency_dict = dict(self.FREQUENCY_CHOICES)
+        return frequency_dict.get(float(self.frequency), "Unknown")
 
 
 

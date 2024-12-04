@@ -217,31 +217,28 @@ def student_view_unmatched_requests(request):
 @login_required
 def student_submits_request(request):
     """View for a student to submit a new session request."""
-    # Redirect if the user is not a student
     if not request.user.is_student:
         return redirect('student_view_unmatched_requests')
 
     if request.method == 'POST':
-        # Pass the logged-in student to the form
-        form = RequestSessionForm(request.POST, student=request.user)
+        form = RequestSessionForm(request.POST, student=request.user)  # Pass student here
         if form.is_valid():
             try:
-                # Create the RequestSession object but don't save it yet
                 new_request = form.save(commit=False)
-                # Set additional fields
-                new_request.student = request.user  # Assign the logged-in student
-                new_request.date_requested = now().date()  # Set the current date
-                new_request.save()  # Save the RequestSession
-                # Redirect to a success page or the student's unmatched requests
+                new_request.student = request.user
+                new_request.date_requested = now().date()
+                new_request.save()
+                # Assuming you're handling days elsewhere
                 return redirect('student_view_unmatched_requests')
             except IntegrityError:
-                # Handle duplicate request error
                 messages.error(request, "You have already submitted a request for this subject.")
     else:
-        # Pass the logged-in student to the form for initialisation
-        form = RequestSessionForm(student=request.user)
+        form = RequestSessionForm(student=request.user)  # Pass student here
 
     return render(request, 'student_submits_request.html', {'form': form})
+
+
+
 
 @login_required
 def view_all_users(request):
