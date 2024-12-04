@@ -2,7 +2,7 @@
 from django.test import TestCase
 from django.core.exceptions import ValidationError
 from tutorials.models import User, Subject, RequestSession
-import datetime
+from datetime import date
 
 class RequestSessionModelTestCase(TestCase):
     """Unit tests for the RequestSession model."""
@@ -26,7 +26,7 @@ class RequestSessionModelTestCase(TestCase):
             subject=self.subject,
             frequency = 1,
             proficiency = "Intermediate",
-            date_requested = datetime.datetime(2024, 1, 1, 0, 0, 0)
+            date_requested = date.today()
         )
 
     def test_request_session_creation(self):

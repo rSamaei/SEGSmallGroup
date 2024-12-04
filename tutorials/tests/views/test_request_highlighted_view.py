@@ -1,5 +1,6 @@
 from django.test import TestCase, Client
 from django.urls import reverse
+from datetime import date
 from tutorials.models import User, RequestSession, Subject, Match
 from tutorials.forms import TutorMatchForm
 
@@ -29,7 +30,9 @@ class AdminRequestedSessionHighlightedViewTestCase(TestCase):
         self.request = RequestSession.objects.create(
             student=self.student,
             subject=self.subject,
-            proficiency='Beginner'
+            proficiency='Beginner',
+            frequency=1.0,
+            date_requested=date.today()
         )
 
         self.url = reverse('admin_requested_session_highlighted', args=[self.request.pk])

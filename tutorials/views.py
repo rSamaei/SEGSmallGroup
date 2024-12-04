@@ -33,10 +33,10 @@ def dashboard(request):
     context = {'user': current_user}
 
     if current_user.is_admin:
-        unmatched_count = RequestSession.objects.filter(match__isnull=True).count()
         total_users_count = User.objects.count()
-        matched_requests_count = Match.objects.filter(tutor_approved=True).count()
+        unmatched_count = RequestSession.objects.filter(match__isnull=True).count()
         pending_approvals_count = Match.objects.filter(tutor_approved=False).count()
+        matched_requests_count = Match.objects.filter(tutor_approved=True).count()
 
         context.update({
             'unmatched_count': unmatched_count,
@@ -189,8 +189,8 @@ def calendar_view(request):
         'prev_year': prev_year,
         'next_month': next_month,
         'next_year': next_year,
-        'users': User.objects.exclude(user_type='admin') if current_user.is_admin else None,  # Add users for filter
-        'selected_user': selected_user,  # Add selected user
+        'users': User.objects.exclude(user_type='admin') if current_user.is_admin else None,  # exclude admins from user timetables
+        'selected_user': selected_user,  # the selected user for the timetable from the admin
     }
 
     return render(request, 'calendar.html', context)

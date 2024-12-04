@@ -1,7 +1,8 @@
 from django.test import TestCase, Client
 from django.urls import reverse
-from tutorials.models import User, RequestSession, Subject, Match
+from tutorials.models import User, RequestSession, Subject, Match, RequestSessionDay
 from tutorials.forms import TutorMatchForm
+from datetime import date
 
 class AdminRequestedSessionsViewTestCase(TestCase):
     """Unit tests for the admin requested sessions view."""
@@ -17,21 +18,23 @@ class AdminRequestedSessionsViewTestCase(TestCase):
         self.client = Client()
         self.url = reverse('admin_requested_sessions')
         
-        # Create admin user
         self.admin = User.objects.filter(user_type='admin').first()
-
-        # create tutor user
         self.tutor = User.objects.filter(user_type='tutor').first()
-        
-        # Create regular user
         self.student = User.objects.filter(user_type='student').first()
-        
-        # Create subject and request
         self.subject = Subject.objects.first()
+        
+        # Create request with days and date
         self.request = RequestSession.objects.create(
             student=self.student,
             subject=self.subject,
-            proficiency='Beginner'
+            proficiency='Beginner',
+            frequency=1.0,
+            date_requested=date.today()
+        )
+        # Add request day
+        RequestSessionDay.objects.create(
+            request_session=self.request,
+            day_of_week='Monday'
         )
 
     def test_url(self):
@@ -41,8 +44,7 @@ class AdminRequestedSessionsViewTestCase(TestCase):
     def test_get_request_redirects_when_not_logged_in(self):
         """Test view redirects when user not logged in."""
         response = self.client.get(self.url)
-        self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, '/log_in/?next=/requests/')
+        self.assertRedirects(response, f'/log_in/?next={self.url}')
 
     def test_get_request_redirects_when_not_admin(self):
         """Test view redirects when user is not admin."""
@@ -59,14 +61,16 @@ class AdminRequestedSessionsViewTestCase(TestCase):
 
     def test_shows_only_unmatched_requests(self):
         """Test view only shows unmatched requests."""
-        # Create different student for matched request
-        another_student = User.objects.filter(user_type='student').exclude(pk=self.student.pk).first()
+        another_student = User.objects.filter(
+            user_type='student'
+        ).exclude(pk=self.student.pk).first()
         
-        # Create matched request with different student
         matched_request = RequestSession.objects.create(
             student=another_student,
             subject=self.subject,
-            proficiency='Intermediate'
+            proficiency='Intermediate',
+            frequency=1.0,
+            date_requested=date.today()
         )
         Match.objects.create(
             request_session=matched_request,
