@@ -18,7 +18,6 @@ from tutorials.helpers import login_prohibited
 
 from tutorials.models import RequestSession, TutorSubject, User, Match, RequestSessionDay, Frequency, Invoice
 from datetime import date, timedelta
-from collections import defaultdict
 
 import calendar as pycalendar
 from .forms import AddTutorSubjectForm
@@ -609,10 +608,6 @@ def get_recurring_dates(session, year, month):
     """Generate recurring dates based on session frequency and term."""
     dates = []
     
-    # Get start and end of current month
-    month_start = date(year, month, 1)
-    month_end = date(year, month + 1, 1) - timedelta(days=1) if month < 12 else date(year + 1, 1, 1) - timedelta(days=1)
-
     request_date = session.date_requested
     if(session.frequency == 2.0):
         interlude = 1
@@ -628,24 +623,27 @@ def get_recurring_dates(session, year, month):
             (date(request_date.year + 1, 1, 4), date(request_date.year + 1, 3, 31)),  # Spring
             (date(request_date.year + 1, 4, 15), date(request_date.year + 1, 7, 20))  # Summer
         ]
-    else:
-        academic_year_start = date(request_date.year - 1, 9, 1)
+    elif 1 <= request_date.month <= 3:
+        academic_year_start = date(request_date.year, 1, 4)
         academic_year_end = date(request_date.year, 7, 20)
         term_dates = [
-            (date(request_date.year - 1, 9, 1), date(request_date.year - 1, 12, 20)),  # Autumn
             (date(request_date.year, 1, 4), date(request_date.year, 3, 31)),  # Spring
+            (date(request_date.year, 4, 15), date(request_date.year, 7, 20))  # Summer
+        ]
+    else:
+        academic_year_start = date(request_date.year, 4, 15)
+        academic_year_end = date(request_date.year, 7, 20)
+        term_dates = [
             (date(request_date.year, 4, 15), date(request_date.year, 7, 20))  # Summer
         ]
     
     # Get session days
     session_days = [day.day_of_week for day in session.days.all()]
 
-    # current = month_start
     current = academic_year_start
-    while current <= min(academic_year_end, month_end):
+    while current <= academic_year_end:
         in_term = any(term_start <= current <= term_end for term_start, term_end in term_dates)
-
-        if in_term and pycalendar.day_name[current.weekday()] in session_days and current.month == month:
+        if in_term and pycalendar.day_name[current.weekday()] in session_days and current.month == month and current.year == year:
             dates.append(current.day + 1)
             current += timedelta(days=interlude)
         else:
