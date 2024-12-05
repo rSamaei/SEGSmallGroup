@@ -11,6 +11,7 @@ from django.shortcuts import redirect, render, get_object_or_404
 from django.views import View
 from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
+from django.db.models import Q
 
 from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm, NewAdminForm,RequestSessionForm, SelectTutorForInvoice, SelectStudentsForInvoice
 
@@ -76,7 +77,6 @@ def dashboard(request):
 
     return render(request, 'dashboard.html', context)
 
-
 @login_required
 def view_matched_requests(request):
     """Display a table of matched requests for a tutor, student, or admin."""
@@ -105,7 +105,6 @@ def view_matched_requests(request):
     ]
     
     return render(request, 'view_matched_requests.html', {'matched_requests_data': matched_requests_data})
-
 
 @login_required
 def view_all_tutor_subjects(request):
@@ -237,9 +236,6 @@ def student_submits_request(request):
 
     return render(request, 'student_submits_request.html', {'form': form})
 
-
-
-
 @login_required
 def view_all_users(request):
     """Display all users in a separate page."""
@@ -350,31 +346,50 @@ def approve_match(request, match_id):
 
     return redirect('dashboard')
 
-
-
 @login_required
-def admin_requested_session_highlighted(request, request_id):
-    """Display detailed view of a specific request."""
+def admin_requested_sessions(request):
+    """Display the session requests to the admin with optional search functionality."""
     if not request.user.is_admin:
-        return redirect('dashboard')
+        return redirect('dashboard')  # Redirect non-admin users
 
-    # Fetch the specific request session by ID
-    session_request = RequestSession.objects.get(id=request_id)
-    
-    # Initialize form with request data if submitted
-    form = TutorMatchForm(session_request, request.GET or None)
-    
-    selected_tutor = None
-    if form.is_valid():
-        # Get the selected tutor from the form
-        selected_tutor = form.cleaned_data['tutor']
-    
-    # Render the detailed view template with the request, form, and selected tutor
-    return render(request, 'admin_requested_session_highlighted.html', {
-        'request': session_request,
-        'form': form,
-        'selected_tutor': selected_tutor
+    # Get the search query from the GET request (if provided)
+    search_query = request.GET.get('search', '').lower()
+
+    # Get all the requests
+    requests = RequestSession.objects.all()
+
+    if search_query:
+        # Filter requests based on search query (case-insensitive search)
+        requests = requests.filter(
+            Q(student__username__icontains=search_query) |  # Search by student name
+            Q(subject__name__icontains=search_query) |  # Search by subject name
+            Q(proficiency__icontains=search_query)  # Search by proficiency
+        )
+
+    # Sort requests: matching requests come first, others come last
+    requests = sorted(requests, key=lambda r: (
+        not any(  # This will check if any of the fields contain the search term
+            search_query in r.student.username.lower() or
+            search_query in r.subject.name.lower() or
+            search_query in r.proficiency.lower()
+        ),
+        r.id  # Secondary sorting by ID to keep original order
+    ))
+
+    # Prepare the context for rendering
+    requests_with_forms = []
+    for request_item in requests:
+        form = TutorMatchForm(request_item)  # Assuming you're using a form for each request
+        requests_with_forms.append({
+            'request': request_item,
+            'form': form
+        })
+
+    return render(request, 'admin_requested_sessions.html', {
+        'requests_with_forms': requests_with_forms,
+        'search_query': search_query
     })
+
 
 @login_required
 def create_match(request, request_id):

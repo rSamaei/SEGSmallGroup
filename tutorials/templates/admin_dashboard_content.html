@@ -1,4 +1,4 @@
-{% for item in requests_with_tutors %}
+<!-- {% for item in requests_with_tutors %}
     <div class="card mb-3">
         <div class="card-body">
             <h5 class="card-title">Request Details</h5>
@@ -17,4 +17,39 @@
             </form>
         </div>
     </div>
-{% endfor %}
+{% endfor %} -->
+
+{% extends 'base_content.html' %}
+
+{% block content %}
+<div class="container">
+    <!-- Scrollable container for requests -->
+    <div class="scrollable-container">
+        <div class="row gy-4">
+            {% for item in requests_with_forms %}
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Request Details</h5>
+                        <p class="card-text">Student: {{ item.request.student.username }}</p>
+                        <p class="card-text">Subject: {{ item.request.subject.name }}</p>
+                        <p>Proficiency: {{ item.request.proficiency }}</p>
+
+                        <form method="post" action="{% url 'create_match' item.request.id %}">
+                            {% csrf_token %}
+                            {{ item.form }}
+                            <div class="d-flex justify-content-between">
+                                <button type="submit" class="btn btn-primary">Create Match</button>
+                                <a href="{% url 'admin_requested_session_highlighted' item.request.id %}" 
+                                   class="btn btn-secondary">View Details</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
