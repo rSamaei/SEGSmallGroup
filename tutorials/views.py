@@ -173,10 +173,10 @@ def calendar_view(request):
     calendar_context = get_calendar_context(current_user, month, year, selected_user)
 
     # Calculate previous and next month
-    prev_month = month - 1 if month > 1 else 12
-    prev_year = year if month > 1 else year - 1
-    next_month = month + 1 if month < 12 else 1
-    next_year = year if month < 12 else year + 1
+    prev_month = month - 1 if month > 1 else 12 # previous month is December if current month is January
+    prev_year = year if month > 1 else year - 1 # previous year is current year if previous month is December
+    next_month = month + 1 if month < 12 else 1 # next month is January if current month is December
+    next_year = year if month < 12 else year + 1 # next year is current year if next month is January
 
     context = {
         'calendar_month': calendar_context['calendar_month'],
