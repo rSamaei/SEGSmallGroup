@@ -13,6 +13,7 @@
               <th>Subject</th>
               <th>Proficiency</th>
               <th>Frequency</th>
+              <th>Days</th>
               <th>Date Requested</th>
             </tr>
           </thead>
@@ -23,6 +24,11 @@
                 <td>{{ request.subject.name }}</td>
                 <td>{{ request.get_proficiency_display }}</td>
                 <td>{{ request.get_frequency_display }}</td>
+                <td>
+                  {% for day in request.days.all %}
+                    {{ day.get_day_of_week_display }}<br>
+                  {% endfor %}
+                </td>
                 <td>{{ request.date_requested }}</td>
               </tr>
             {% endfor %}

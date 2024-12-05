@@ -99,6 +99,7 @@ def view_matched_requests(request):
             'student_proficiency': match.request_session.proficiency,
             'date_requested': match.request_session.date_requested,
             'frequency': Frequency.to_string(match.request_session.frequency),
+            'days': [day.get_day_of_week_display() for day in match.request_session.days.all()]
         }
         for match in matched_requests
     ]
@@ -206,7 +207,7 @@ def student_view_unmatched_requests(request):
     unmatched_requests = RequestSession.objects.filter(
         student=current_user,
         match__isnull=True
-    )
+    ).prefetch_related('days')
 
     context = {
         'unmatched_requests': unmatched_requests
@@ -231,6 +232,14 @@ def student_submits_request(request):
                 new_request.student = request.user  # Assign the logged-in student
                 new_request.date_requested = now().date()  # Set the current date
                 new_request.save()  # Save the RequestSession
+
+                days_selected = request.POST.getlist('days')  # Get the selected days from form
+                for day in days_selected:
+                    RequestSessionDay.objects.create(
+                    request_session=new_request,
+                    day_of_week=day
+                    )
+
                 # Redirect to a success page or the student's unmatched requests
                 return redirect('student_view_unmatched_requests')
             except IntegrityError:

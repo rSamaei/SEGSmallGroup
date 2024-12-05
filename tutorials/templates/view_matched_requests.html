@@ -11,6 +11,7 @@
           <th scope="col">Subject</th>
           <th scope="col">Student Proficiency</th>
           <th scope="col">Date Requested</th>
+          <th scope="col">Days</th>
           <th scope="col">Frequency</th>
         </tr>
       </thead>
@@ -22,6 +23,11 @@
             <td>{{ match.subject }}</td>
             <td>{{ match.student_proficiency }}</td>
             <td>{{ match.date_requested }}</td>
+            <td>
+              {% for day in match.days %}
+                {{ day }}<br>
+              {% endfor %}
+            </td>
             <td>{{ match.frequency }}</td>
           </tr>
         {% empty %}
