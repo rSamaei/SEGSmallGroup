@@ -2,7 +2,7 @@
   <div class="container">
     <!-- Brand/logo -->
     <a class="navbar-brand" href="{% url 'dashboard' %}">
-      Task Manager
+      Code404
     </a>
      <!-- Responsive toggle button -->
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -28,6 +28,16 @@
         <li class="nav-item">
           <a class="nav-link" href="{% url 'dashboard' %}">Placeholder</a>
         </li>
+        {% if user.is_student %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'student_submits_request' %}">Request Session</a>
+          </li>
+        {% endif %}
+        <!-- {% if user.is_teacher %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'teacher_requested_sessions' %}">Requested Sessions</a>
+          </li>
+        {% endif %} -->
       </ul>
 
     {% if user.is_authenticated %}

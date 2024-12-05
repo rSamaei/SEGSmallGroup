@@ -47,6 +47,9 @@ urlpatterns = [
 
     path('invoice/',views.invoice, name='invoice'),
 
+    path('pending-approvals/', views.pending_approvals, name='pending_approvals'),
+    path('approve-match/<int:match_id>/', views.approve_match, name='approve_match'),
+    
 
 ]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

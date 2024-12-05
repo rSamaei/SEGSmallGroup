@@ -26,7 +26,7 @@
                   <p class="card-text">Student: {{ key.match.request_session.student.first_name }} {{ key.match.request_session.student.last_name }}</p>
                 {% endif %}
                 <p class="card-text">Subject: {{ key.match.request_session.subject.name }}</p>
-                <p>Frequency: {{ key.match.request_session.frequency }}</p>
+                <p>Frequency: {{ key.match.request_session.get_frequency_display }}</p>
                 <div class="card text-center">
                   <p class="card-text">Total Payment : £{{ key.payment }}</p>
                 </div>
@@ -48,7 +48,7 @@
                 <p class="card-text">Student: {{ key.match.request_session.student.first_name }} {{ key.match.request_session.student.last_name }}</p>
               {% endif %}
               <p class="card-text">Subject: {{ key.match.request_session.subject.name }}</p>
-              <p>Frequency: {{ key.match.request_session.frequency }}</p>
+              <p>Frequency: {{ key.match.request_session.get_frequency_display }}</p>
               <div class="card text-center">
                 <p class="card-text">Total Payment : £{{ key.payment }}</p>
               </div>

@@ -18,12 +18,12 @@ from tutorials.helpers import login_prohibited
 
 from tutorials.models import RequestSession, TutorSubject, User, Match, RequestSessionDay, Frequency, Invoice
 from datetime import date, timedelta
-from collections import defaultdict
 
 import calendar as pycalendar
 from .forms import AddTutorSubjectForm
 from django.utils.timezone import now
 from django.db import IntegrityError
+
 
 @login_required
 def dashboard(request):
@@ -32,69 +32,63 @@ def dashboard(request):
     context = {'user': current_user}
 
     if current_user.is_admin:
-        # Get count of unmatched requests
-        unmatched_count = RequestSession.objects.filter(
-            match__isnull=True
-        ).count()
-
-        #Total number of Users
         total_users_count = User.objects.count()
-        #Total number of matched requests
-        matched_requests_count = Match.objects.count()
+        unmatched_count = RequestSession.objects.filter(match__isnull=True).count()
+        pending_approvals_count = Match.objects.filter(tutor_approved=False).count()
+        matched_requests_count = Match.objects.filter(tutor_approved=True).count()
 
         context.update({
             'unmatched_count': unmatched_count,
             'is_admin_view': True,
             'total_users_count': total_users_count,
             'matched_requests_count': matched_requests_count,
-
-        })
+            'pending_approvals_count': pending_approvals_count,
+        })  
 
     elif current_user.is_tutor:
-        # Get count of the tutor's subject availability
         total_subjects_count = TutorSubject.objects.filter(tutor=current_user).count()
-        #Get number of matched requestes for the tutor
-        matched_requests_count = Match.objects.filter(tutor=request.user).count()
+        matched_requests_count = Match.objects.filter(tutor=current_user, tutor_approved=True).count()
+        pending_approvals_count = Match.objects.filter(tutor=current_user, tutor_approved=False).count()
 
         context.update(get_calendar_context(current_user))
         context.update({
             'total_subjects_count': total_subjects_count,
-            'is_tutor_view': current_user.is_tutor,
+            'is_tutor_view': True,
             'matched_requests_count': matched_requests_count,
+            'pending_approvals_count': pending_approvals_count,
         })
 
     else:
-        # Get the count of the current user's unmatched requests
+        # Student view context
         unmatched_student_requests = RequestSession.objects.filter(
             student=current_user,
             match__isnull=True
         ).count()
-        #Get number of matched requestes for the student
-        matched_requests_count = Match.objects.filter(request_session__student=request.user).count()
+        matched_requests_count = Match.objects.filter(request_session__student=current_user, tutor_approved=True).count()
 
-        # Add calendar context for non-admin users
         context.update(get_calendar_context(current_user))
         context.update({
             'unmatched_student_requests': unmatched_student_requests,
-            'is_student_view': current_user.is_student,
+            'is_student_view': True,
             'matched_requests_count': matched_requests_count,
         })
 
     return render(request, 'dashboard.html', context)
+
 
 @login_required
 def view_matched_requests(request):
     """Display a table of matched requests for a tutor, student, or admin."""
     
     if request.user.is_admin:
-        # Admin can see all matched requests
-        matched_requests = Match.objects.all()
+        # Admin can see all approved matched requests
+        matched_requests = Match.objects.filter(tutor_approved=True)
     elif request.user.is_tutor:
-        # Tutors can see only the requests where they are the tutor
-        matched_requests = Match.objects.filter(tutor=request.user)
+        # Tutors can see only approved matches where they are the tutor
+        matched_requests = Match.objects.filter(tutor=request.user, tutor_approved=True)
     else:
-        # Students can see only the requests where they are the student
-        matched_requests = Match.objects.filter(request_session__student=request.user)
+        # Students can see only approved matches where they are the student
+        matched_requests = Match.objects.filter(request_session__student=request.user, tutor_approved=True)
     
     # Fetch the relevant details to be shown in the table
     matched_requests_data = [
@@ -110,6 +104,7 @@ def view_matched_requests(request):
     ]
     
     return render(request, 'view_matched_requests.html', {'matched_requests_data': matched_requests_data})
+
 
 @login_required
 def view_all_tutor_subjects(request):
@@ -169,12 +164,13 @@ def calendar_view(request):
     """Display a full calendar with matched schedules."""
     current_user = request.user
 
-    # Get month and year from request parameters
+    # Get month, year and filter parameters from request
     month = int(request.GET.get('month', date.today().month))
     year = int(request.GET.get('year', date.today().year))
+    selected_user = request.GET.get('user')
 
     # Use the helper function to get calendar context
-    calendar_context = get_calendar_context(current_user, month, year)
+    calendar_context = get_calendar_context(current_user, month, year, selected_user)
 
     # Calculate previous and next month
     prev_month = month - 1 if month > 1 else 12
@@ -192,6 +188,8 @@ def calendar_view(request):
         'prev_year': prev_year,
         'next_month': next_month,
         'next_year': next_year,
+        'users': User.objects.exclude(user_type='admin') if current_user.is_admin else None,  # exclude admins from user timetables
+        'selected_user': selected_user,  # the selected user for the timetable from the admin
     }
 
     return render(request, 'calendar.html', context)
@@ -297,6 +295,66 @@ def admin_requested_sessions(request):
     })
 
 @login_required
+def pending_approvals(request):
+    """List pending matches for tutors or admins."""
+    current_user = request.user
+
+    if current_user.is_admin:
+        # Admin: See all pending requests
+        matches = Match.objects.filter(tutor_approved=False)
+        can_approve = False  # Admins cannot approve requests
+    elif current_user.is_tutor:
+        # Tutor: See only their pending requests
+        matches = Match.objects.filter(tutor=current_user, tutor_approved=False)
+        can_approve = True  # Tutors can approve their requests
+    else:
+        # Redirect non-admins and non-tutors
+        return redirect('dashboard')
+
+    matches_data = [
+        {
+            'id': match.id,
+            'student': match.request_session.student.username,
+            'tutor_username': match.tutor.username,
+            'subject': match.request_session.subject.name,
+            'proficiency': match.request_session.proficiency,
+            'frequency': Frequency.to_string(match.request_session.frequency),
+            'date_requested': match.request_session.date_requested,
+        }
+        for match in matches
+    ]
+
+    return render(
+        request,
+        'pending_approvals.html',
+        {'matches_data': matches_data, 'can_approve': can_approve}
+    )
+
+@login_required
+def approve_match(request, match_id):
+    """Approve a match, setting tutor_approved=True."""
+    if not request.user.is_tutor:
+        return redirect('dashboard')  # Only tutors can approve matches
+
+    try:
+        match = Match.objects.get(id=match_id, tutor=request.user)
+    except Match.DoesNotExist:
+        # Match doesn't exist or isn't assigned to this tutor
+        return redirect('pending_approvals')
+
+    if request.method == "POST":
+        # Approve the match
+        match.tutor_approved = True
+        match.save()
+        generateInvoice(Match.objects.get(id = match_id))
+        messages.success(request, "Match approved successfully.")
+        return redirect('pending_approvals')
+
+    return redirect('dashboard')
+
+
+
+@login_required
 def admin_requested_session_highlighted(request, request_id):
     """Display detailed view of a specific request."""
     if not request.user.is_admin:
@@ -333,7 +391,6 @@ def create_match(request, request_id):
         if form.is_valid():
             try:
                 tempMatch = form.save(request_session=session)
-                generateInvoice(tempMatch)
                 messages.success(request, 'Match created successfully')
                 return redirect('admin_requested_sessions')
             except Exception as e:
@@ -374,9 +431,6 @@ def registerNewAdmin(request):
     
     return render(request, 'registerAdmin.html', {'form':form})
 
-
-
-
 @login_required
 def invoice(request):
     form = None
@@ -386,7 +440,8 @@ def invoice(request):
             if form.is_valid():
                 selectedTutor = form.cleaned_data.get('tutor')
                 allMatches = Match.objects.filter(
-                    tutor = selectedTutor
+                    tutor=selectedTutor,
+                    tutor_approved=True  # Only approved matches
                 )
                 listOfPaidInvoice = []
                 listOfUnpaidInvoices = []
@@ -416,16 +471,16 @@ def invoice(request):
             form = SelectTutorForInvoice()
             context = {'form' : form, 'paid_sessions':None}
             return render(request, 'invoice.html', context)
-            
 
         else:
             form = SelectTutorForInvoice()
             context = {'form' : form, 'paid_sessions':None}
             return render(request, 'invoice.html', context)
-    
+
     elif request.user.is_tutor:
         allMatches = Match.objects.filter(
-            tutor = request.user
+            tutor=request.user,
+            tutor_approved=True  # Only approved matches
         )
         listOfPaidInvoice = []
         listOfUnpaidInvoices = []
@@ -437,7 +492,7 @@ def invoice(request):
                 listOfUnpaidInvoices.append(inv[0])
         context = {'form' : form, 'paid_sessions': listOfPaidInvoice, 'unpaid_sessions' : listOfUnpaidInvoices}
         return render(request, 'invoice.html', context)
-    
+
     elif request.user.is_student:
         if request.method == "POST":
             paymentMatchID = request.POST['session']
@@ -449,7 +504,8 @@ def invoice(request):
             tempInvoice.save()
 
         allMatches = Match.objects.filter(
-            request_session__student = request.user
+            request_session__student=request.user,
+            tutor_approved=True  # Only approved matches
         )
         listOfPaidInvoice = []
         listOfUnpaidInvoices = []
@@ -463,36 +519,28 @@ def invoice(request):
         return render(request, 'invoice.html', context)
 
 
+def generateInvoice(session_match: Match):
+    if not session_match.tutor_approved:
+        return
     
-    
-    
-def generateInvoice(session_match:Match):
     selectedTutor = session_match.tutor
     tutorSub = TutorSubject.objects.filter(
-        tutor = selectedTutor,
-        subject = session_match.request_session.subject,
+        tutor=selectedTutor,
+        subject=session_match.request_session.subject,
     )
-    tempPrice = round(tutorSub[0].price * 27 * session_match.request_session.frequency, 2)
-    tempInvoice = Invoice.objects.create(
-        match = session_match,
-        payment = tempPrice
-    )
-    
-
-
-
-
-
-
-
-
+    if tutorSub.exists():
+        tempPrice = round(tutorSub[0].price * 27 * session_match.request_session.frequency, 2)
+        Invoice.objects.create(
+            match=session_match,
+            payment=tempPrice
+        )
+  
 
 @login_prohibited
 def home(request):
     """Display the application's start/home screen."""
 
     return render(request, 'home.html')
-
 
 class LoginProhibitedMixin:
     """Mixin that redirects when a user is logged in."""
@@ -519,7 +567,6 @@ class LoginProhibitedMixin:
             )
         else:
             return self.redirect_when_logged_in_url
-
 
 class LogInView(LoginProhibitedMixin, View):
     """Display login screen and handle user login."""
@@ -551,7 +598,6 @@ class LogInView(LoginProhibitedMixin, View):
         form = LogInForm()
         return render(self.request, 'log_in.html', {'form': form, 'next': self.next})
 
-
 def log_out(request):
     """Log out the current user"""
 
@@ -562,10 +608,6 @@ def get_recurring_dates(session, year, month):
     """Generate recurring dates based on session frequency and term."""
     dates = []
     
-    # Get start and end of current month
-    month_start = date(year, month, 1)
-    month_end = date(year, month + 1, 1) - timedelta(days=1) if month < 12 else date(year + 1, 1, 1) - timedelta(days=1)
-
     request_date = session.date_requested
     if(session.frequency == 2.0):
         interlude = 1
@@ -581,24 +623,27 @@ def get_recurring_dates(session, year, month):
             (date(request_date.year + 1, 1, 4), date(request_date.year + 1, 3, 31)),  # Spring
             (date(request_date.year + 1, 4, 15), date(request_date.year + 1, 7, 20))  # Summer
         ]
-    else:
-        academic_year_start = date(request_date.year - 1, 9, 1)
+    elif 1 <= request_date.month <= 3:
+        academic_year_start = date(request_date.year, 1, 4)
         academic_year_end = date(request_date.year, 7, 20)
         term_dates = [
-            (date(request_date.year - 1, 9, 1), date(request_date.year - 1, 12, 20)),  # Autumn
             (date(request_date.year, 1, 4), date(request_date.year, 3, 31)),  # Spring
+            (date(request_date.year, 4, 15), date(request_date.year, 7, 20))  # Summer
+        ]
+    else:
+        academic_year_start = date(request_date.year, 4, 15)
+        academic_year_end = date(request_date.year, 7, 20)
+        term_dates = [
             (date(request_date.year, 4, 15), date(request_date.year, 7, 20))  # Summer
         ]
     
     # Get session days
     session_days = [day.day_of_week for day in session.days.all()]
 
-    # current = month_start
     current = academic_year_start
-    while current <= min(academic_year_end, month_end):
+    while current <= academic_year_end:
         in_term = any(term_start <= current <= term_end for term_start, term_end in term_dates)
-
-        if in_term and pycalendar.day_name[current.weekday()] in session_days and current.month == month:
+        if in_term and pycalendar.day_name[current.weekday()] in session_days and current.month == month and current.year == year:
             dates.append(current.day + 1)
             current += timedelta(days=interlude)
         else:
@@ -610,33 +655,51 @@ def get_recurring_dates(session, year, month):
 
     return dates
 
-def get_calendar_context(user, month=None, year=None):
+def get_calendar_context(user, month=None, year=None, selected_user=None):
     """Get calendar context for the user."""
     if month is None:
         month = date.today().month
     if year is None:
         year = date.today().year
-    
-    # Filter sessions based on user type
+
+    # Filter sessions based on user type with tutor_approved check
     if user.user_type == 'student':
         sessions = RequestSession.objects.filter(
             student=user,
-            match__isnull=False
+            match__isnull=False,
+            match__tutor_approved=True
         ).select_related('match', 'subject', 'match__tutor').prefetch_related('days')
     elif user.user_type == 'tutor':
         sessions = RequestSession.objects.filter(
-            match__tutor=user
+            match__tutor=user,
+            match__tutor_approved=True
         ).select_related('match', 'subject', 'student').prefetch_related('days')
     else:
-        sessions = RequestSession.objects.filter(
-            match__isnull=False
-        ).select_related('match', 'subject', 'student', 'match__tutor').prefetch_related('days')
+        # Admin view with optional user filter
+        if selected_user:
+            selected_user_obj = User.objects.get(username=selected_user)
+            if selected_user_obj.is_student:
+                sessions = RequestSession.objects.filter(
+                    student=selected_user_obj,
+                    match__isnull=False,
+                    match__tutor_approved=True
+                )
+            elif selected_user_obj.is_tutor:
+                sessions = RequestSession.objects.filter(
+                    match__tutor=selected_user_obj,
+                    match__tutor_approved=True
+                )
+        else:
+            sessions = RequestSession.objects.filter(
+                match__isnull=False,
+                match__tutor_approved=True
+            ).select_related('match', 'subject', 'student', 'match__tutor').prefetch_related('days')
 
     # Get recurring dates for each session
     highlighted_dates = set()
     for session in sessions:
         recurring_dates = get_recurring_dates(session, year, month)
-        session.recurring_dates = recurring_dates  # Add to session object
+        session.recurring_dates = recurring_dates
         highlighted_dates.update(recurring_dates)
     
     return {
@@ -671,7 +734,6 @@ class PasswordView(LoginRequiredMixin, FormView):
         messages.add_message(self.request, messages.SUCCESS, "Password updated!")
         return reverse('dashboard')
 
-
 class ProfileUpdateView(LoginRequiredMixin, UpdateView):
     """Display user profile editing screen, and handle profile modifications."""
 
@@ -688,7 +750,6 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
         """Return redirect URL after successful update."""
         messages.add_message(self.request, messages.SUCCESS, "Profile updated!")
         return reverse(settings.REDIRECT_URL_WHEN_LOGGED_IN)
-
 
 class SignUpView(LoginProhibitedMixin, FormView):
     """Display the sign up screen and handle sign ups."""

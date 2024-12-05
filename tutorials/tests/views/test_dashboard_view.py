@@ -1,6 +1,7 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from tutorials.models import User, RequestSession, Subject
+from datetime import date
 
 class DashboardViewTestCase(TestCase):
     """Unit tests for the dashboard view."""
@@ -21,7 +22,9 @@ class DashboardViewTestCase(TestCase):
         self.request = RequestSession.objects.create(
             student=self.student,
             subject=self.subject,
-            proficiency='Beginner'
+            proficiency='Beginner',
+            frequency='1.0',
+            date_requested=date.today()
         )
 
     def test_dashboard_url(self):

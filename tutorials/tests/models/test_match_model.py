@@ -16,11 +16,12 @@ class MatchModelTestCase(TestCase):
     ]
 
     def setUp(self):
-        self.tutor = TutorSubject.objects.first().tutor # get the tutor linked in the tutor subjects fixture
-        self.session = RequestSession.objects.first() # get the request session created in the request session fixture
-        self.match = Match.objects.create(  # these should now have the same subject and proficiency
+        self.tutor = TutorSubject.objects.first().tutor 
+        self.session = RequestSession.objects.first() 
+        self.match = Match.objects.create( 
             request_session=self.session,
-            tutor=self.tutor
+            tutor=self.tutor,
+            tutor_approved=False
         )
 
     def test_match_creation(self):
@@ -31,7 +32,7 @@ class MatchModelTestCase(TestCase):
 
     def test_match_str(self):
         """Test string representation."""
-        expected = f"Match: {self.session} with Tutor {self.tutor.username}"
+        expected = f"Match: {self.session} with Tutor {self.tutor.username} (Approved: {self.match.tutor_approved})"
         self.assertEqual(str(self.match), expected)
 
     def test_unique_match_per_request(self):
@@ -40,7 +41,8 @@ class MatchModelTestCase(TestCase):
         
         duplicate_match = Match(
             request_session=self.session,
-            tutor=self.tutor
+            tutor=self.tutor,
+            tutor_approved=False
         )
         
         # atomic transaction used to rollback after test
@@ -57,7 +59,8 @@ class MatchModelTestCase(TestCase):
         with self.assertRaises(ValidationError):
             invalid_match = Match(
                 request_session=self.session,
-                tutor=student
+                tutor=student,
+                tutor_approved=False
             )
             invalid_match.full_clean()
 

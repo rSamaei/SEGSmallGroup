@@ -1,0 +1,46 @@
+{% extends 'base_content.html' %}
+
+{% block content %}
+<div class="container">
+    <h1>Pending Match Approvals</h1>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Student</th>
+                <th>Subject</th>
+                <th>Tutor</th>
+                <th>Proficiency</th>
+                <th>Frequency</th>
+                <th>Date Requested</th>
+                {% if can_approve %}
+                <th>Action</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for match in matches_data %}
+            <tr>
+                <td>{{ match.student }}</td>
+                <td>{{ match.subject }}</td>
+                <td>{{ match.tutor_username }}</td>
+                <td>{{ match.proficiency }}</td>
+                <td>{{ match.frequency }}</td>
+                <td>{{ match.date_requested }}</td>
+                {% if can_approve %}
+                <td>
+                    <form method="post" action="{% url 'approve_match' match.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success">Approve</button>
+                    </form>
+                </td>
+                {% else %}
+                <td>
+                    <button class="btn btn-secondary" disabled>Approval Restricted</button>
+                </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

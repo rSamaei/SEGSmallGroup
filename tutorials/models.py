@@ -76,8 +76,6 @@ class Subject(models.Model):
         return self.name
 
 
-
-
 class RequestSession(models.Model):
     """Model for a session request made by a student"""
 
@@ -96,7 +94,7 @@ class RequestSession(models.Model):
 
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='requests')
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
-    frequency = models.DecimalField(max_digits=3, decimal_places=2, default=1.0)  # Added default=1 for once per week
+    frequency = models.DecimalField(max_digits=3, decimal_places=2, default=1.0, choices=FREQUENCY_CHOICES)
     proficiency = models.CharField(max_length=12, choices=PROFICIENCY_TYPES, default='Beginner')
     date_requested = models.DateField(null=False, blank=False)  # Change from DateTimeField to DateField
 
@@ -108,7 +106,9 @@ class RequestSession(models.Model):
     
     def get_frequency_display(self):
         """Return human-readable frequency."""
-        return Frequency.to_string(float(self.frequency))
+        # Use the defined choices to get the display value
+        frequency_dict = dict(self.FREQUENCY_CHOICES)
+        return frequency_dict.get(float(self.frequency), "Unknown")
 
 
 
@@ -135,9 +135,10 @@ class Match(models.Model):
 
     request_session = models.OneToOneField(RequestSession, on_delete=models.CASCADE)
     tutor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='matches')
+    tutor_approved = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"Match: {self.request_session} with Tutor {self.tutor.username}"
+        return f"Match: {self.request_session} with Tutor {self.tutor.username} (Approved: {self.tutor_approved})"
 
 
 class Invoice(models.Model):
