@@ -11,6 +11,7 @@ from django.shortcuts import redirect, render, get_object_or_404
 from django.views import View
 from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
+from django.db.models import Q
 
 from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm, NewAdminForm,RequestSessionForm, SelectTutorForInvoice, SelectStudentsForInvoice
 
@@ -272,27 +273,51 @@ def delete_tutor_subject(request, subject_id):
 
 @login_required
 def admin_requested_sessions(request):
+    """Display the session requests to the admin with optional search functionality."""
     if not request.user.is_admin:
-        return redirect('dashboard')
-    
-    # query for unmatched requests, select related performs a join on the student and subject tables to find 
-    unmatched_requests = RequestSession.objects.filter(
-        match__isnull=True
-    ).select_related('student', 'subject')
-    
-    # Create a form for each request
+        return redirect('dashboard')  # Redirect non-admin users
+
+    # Get the search query from the GET request (if provided)
+    search_query = request.GET.get('search', '').lower()
+
+    # Get all unmatched requests (exclude those with a match)
+    requests = RequestSession.objects.filter(match__isnull=True)
+
+    # If a search query is provided, filter requests based on the query
+    if search_query:
+        requests = requests.filter(
+            Q(student__username__icontains=search_query) |  # Search by student name
+            Q(subject__name__icontains=search_query) |  # Search by subject name
+            Q(proficiency__icontains=search_query)  # Search by proficiency
+        )
+
+    # Sort requests: matching requests come first, others come last
+    requests = sorted(requests, key=lambda r: (
+        not any([  # Ensure you're passing a list (iterable) to any()
+            search_query in r.student.username.lower(),
+            search_query in r.subject.name.lower(),
+            search_query in r.proficiency.lower()
+        ]),
+        r.id  # Secondary sorting by ID to keep original order
+    ))
+
+    # Prepare the context for rendering
     requests_with_forms = []
-    for req in unmatched_requests:
+    for request_item in requests:
+        form = TutorMatchForm(request_item)  # Assuming you're using a form for each request
         requests_with_forms.append({
-            'request': req,
-            'form': TutorMatchForm(req)
+            'request': request_item,
+            'form': form
         })
-    
-    # Render the admin requested sessions template with the requests and forms
+
+    # Add is_admin_view to context
     return render(request, 'admin_requested_sessions.html', {
         'requests_with_forms': requests_with_forms,
-        'is_admin_view': True
+        'search_query': search_query,
+        'is_admin_view': True,  # Add this flag to the context
     })
+
+
 
 @login_required
 def pending_approvals(request):
