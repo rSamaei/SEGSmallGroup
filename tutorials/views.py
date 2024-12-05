@@ -355,14 +355,11 @@ def admin_requested_sessions(request):
     # Get the search query from the GET request (if provided)
     search_query = request.GET.get('search', '').lower()
 
-    # Get all the requests
-    requests = RequestSession.objects.all()
+    # Get all unmatched requests (exclude those with a match)
+    requests = RequestSession.objects.filter(match__isnull=True)
 
-    # Filter out requests that have a match
-    requests = requests.exclude(match__isnull=False)  # Exclude matched requests
-
+    # If a search query is provided, filter requests based on the query
     if search_query:
-        # Filter requests based on search query (case-insensitive search)
         requests = requests.filter(
             Q(student__username__icontains=search_query) |  # Search by student name
             Q(subject__name__icontains=search_query) |  # Search by subject name
@@ -394,6 +391,7 @@ def admin_requested_sessions(request):
         'search_query': search_query,
         'is_admin_view': True,  # Add this flag to the context
     })
+
 
 
 
