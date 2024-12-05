@@ -11,6 +11,7 @@ from django.shortcuts import redirect, render, get_object_or_404
 from django.views import View
 from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
+from django.db.models import Q
 
 from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm, NewAdminForm,RequestSessionForm, SelectTutorForInvoice, SelectStudentsForInvoice
 
@@ -76,7 +77,6 @@ def dashboard(request):
 
     return render(request, 'dashboard.html', context)
 
-
 @login_required
 def view_matched_requests(request):
     """Display a table of matched requests for a tutor, student, or admin."""
@@ -105,7 +105,6 @@ def view_matched_requests(request):
     ]
     
     return render(request, 'view_matched_requests.html', {'matched_requests_data': matched_requests_data})
-
 
 @login_required
 def view_all_tutor_subjects(request):
@@ -237,9 +236,6 @@ def student_submits_request(request):
 
     return render(request, 'student_submits_request.html', {'form': form})
 
-
-
-
 @login_required
 def view_all_users(request):
     """Display all users in a separate page."""
@@ -349,6 +345,53 @@ def approve_match(request, match_id):
         return redirect('pending_approvals')
 
     return redirect('dashboard')
+
+@login_required
+def admin_requested_sessions(request):
+    """Display the session requests to the admin with optional search functionality."""
+    if not request.user.is_admin:
+        return redirect('dashboard')  # Redirect non-admin users
+
+    # Get the search query from the GET request (if provided)
+    search_query = request.GET.get('search', '').lower()
+
+    # Get all unmatched requests (exclude those with a match)
+    requests = RequestSession.objects.filter(match__isnull=True)
+
+    # If a search query is provided, filter requests based on the query
+    if search_query:
+        requests = requests.filter(
+            Q(student__username__icontains=search_query) |  # Search by student name
+            Q(subject__name__icontains=search_query) |  # Search by subject name
+            Q(proficiency__icontains=search_query)  # Search by proficiency
+        )
+
+    # Sort requests: matching requests come first, others come last
+    requests = sorted(requests, key=lambda r: (
+        not any([  # Ensure you're passing a list (iterable) to any()
+            search_query in r.student.username.lower(),
+            search_query in r.subject.name.lower(),
+            search_query in r.proficiency.lower()
+        ]),
+        r.id  # Secondary sorting by ID to keep original order
+    ))
+
+    # Prepare the context for rendering
+    requests_with_forms = []
+    for request_item in requests:
+        form = TutorMatchForm(request_item)  # Assuming you're using a form for each request
+        requests_with_forms.append({
+            'request': request_item,
+            'form': form
+        })
+
+    # Add is_admin_view to context
+    return render(request, 'admin_requested_sessions.html', {
+        'requests_with_forms': requests_with_forms,
+        'search_query': search_query,
+        'is_admin_view': True,  # Add this flag to the context
+    })
+
 
 
 
@@ -516,7 +559,6 @@ def invoice(request):
         context = {'form' : form, 'paid_sessions': listOfPaidInvoice, 'unpaid_sessions' : listOfUnpaidInvoices}
         return render(request, 'invoice.html', context)
 
-
 def generateInvoice(session_match: Match):
     if not session_match.tutor_approved:
         return
@@ -533,7 +575,6 @@ def generateInvoice(session_match: Match):
             payment=tempPrice
         )
   
-
 @login_prohibited
 def home(request):
     """Display the application's start/home screen."""
