@@ -358,6 +358,9 @@ def admin_requested_sessions(request):
     # Get all the requests
     requests = RequestSession.objects.all()
 
+    # Filter out requests that have a match
+    requests = requests.exclude(match__isnull=False)  # Exclude matched requests
+
     if search_query:
         # Filter requests based on search query (case-insensitive search)
         requests = requests.filter(
@@ -368,11 +371,11 @@ def admin_requested_sessions(request):
 
     # Sort requests: matching requests come first, others come last
     requests = sorted(requests, key=lambda r: (
-        not any(  # This will check if any of the fields contain the search term
-            search_query in r.student.username.lower() or
-            search_query in r.subject.name.lower() or
+        not any([  # Ensure you're passing a list (iterable) to any()
+            search_query in r.student.username.lower(),
+            search_query in r.subject.name.lower(),
             search_query in r.proficiency.lower()
-        ),
+        ]),
         r.id  # Secondary sorting by ID to keep original order
     ))
 
@@ -385,11 +388,38 @@ def admin_requested_sessions(request):
             'form': form
         })
 
+    # Add is_admin_view to context
     return render(request, 'admin_requested_sessions.html', {
         'requests_with_forms': requests_with_forms,
-        'search_query': search_query
+        'search_query': search_query,
+        'is_admin_view': True,  # Add this flag to the context
     })
 
+
+
+@login_required
+def admin_requested_session_highlighted(request, request_id):
+    """Display detailed view of a specific request."""
+    if not request.user.is_admin:
+        return redirect('dashboard')
+
+    # Fetch the specific request session by ID
+    session_request = RequestSession.objects.get(id=request_id)
+    
+    # Initialize form with request data if submitted
+    form = TutorMatchForm(session_request, request.GET or None)
+    
+    selected_tutor = None
+    if form.is_valid():
+        # Get the selected tutor from the form
+        selected_tutor = form.cleaned_data['tutor']
+    
+    # Render the detailed view template with the request, form, and selected tutor
+    return render(request, 'admin_requested_session_highlighted.html', {
+        'request': session_request,
+        'form': form,
+        'selected_tutor': selected_tutor
+    })
 
 @login_required
 def create_match(request, request_id):
@@ -531,7 +561,6 @@ def invoice(request):
         context = {'form' : form, 'paid_sessions': listOfPaidInvoice, 'unpaid_sessions' : listOfUnpaidInvoices}
         return render(request, 'invoice.html', context)
 
-
 def generateInvoice(session_match: Match):
     if not session_match.tutor_approved:
         return
@@ -548,7 +577,6 @@ def generateInvoice(session_match: Match):
             payment=tempPrice
         )
   
-
 @login_prohibited
 def home(request):
     """Display the application's start/home screen."""
