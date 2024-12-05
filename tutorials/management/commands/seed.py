@@ -191,8 +191,6 @@ def generateInvoice(session_match: Match):
             )
             
 
-
-
 def create_username(first_name, last_name):
     return '@' + first_name.lower() + last_name.lower()
 

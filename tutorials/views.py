@@ -11,7 +11,6 @@ from django.shortcuts import redirect, render, get_object_or_404
 from django.views import View
 from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
-from django.db.models import Q
 
 from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm, NewAdminForm,RequestSessionForm, SelectTutorForInvoice, SelectStudentsForInvoice
 
@@ -19,7 +18,6 @@ from tutorials.helpers import login_prohibited
 
 from tutorials.models import RequestSession, TutorSubject, User, Match, RequestSessionDay, Frequency, Invoice
 from datetime import date, timedelta
-from collections import defaultdict
 
 import calendar as pycalendar
 from .forms import AddTutorSubjectForm
@@ -77,6 +75,7 @@ def dashboard(request):
 
     return render(request, 'dashboard.html', context)
 
+
 @login_required
 def view_matched_requests(request):
     """Display a table of matched requests for a tutor, student, or admin."""
@@ -105,6 +104,7 @@ def view_matched_requests(request):
     ]
     
     return render(request, 'view_matched_requests.html', {'matched_requests_data': matched_requests_data})
+
 
 @login_required
 def view_all_tutor_subjects(request):
@@ -216,23 +216,29 @@ def student_view_unmatched_requests(request):
 @login_required
 def student_submits_request(request):
     """View for a student to submit a new session request."""
+    # Redirect if the user is not a student
     if not request.user.is_student:
         return redirect('student_view_unmatched_requests')
 
     if request.method == 'POST':
-        form = RequestSessionForm(request.POST, student=request.user)  # Pass student here
+        # Pass the logged-in student to the form
+        form = RequestSessionForm(request.POST, student=request.user)
         if form.is_valid():
             try:
+                # Create the RequestSession object but don't save it yet
                 new_request = form.save(commit=False)
-                new_request.student = request.user
-                new_request.date_requested = now().date()
-                new_request.save()
-                # Assuming you're handling days elsewhere
+                # Set additional fields
+                new_request.student = request.user  # Assign the logged-in student
+                new_request.date_requested = now().date()  # Set the current date
+                new_request.save()  # Save the RequestSession
+                # Redirect to a success page or the student's unmatched requests
                 return redirect('student_view_unmatched_requests')
             except IntegrityError:
+                # Handle duplicate request error
                 messages.error(request, "You have already submitted a request for this subject.")
     else:
-        form = RequestSessionForm(student=request.user)  # Pass student here
+        # Pass the logged-in student to the form for initialisation
+        form = RequestSessionForm(student=request.user)
 
     return render(request, 'student_submits_request.html', {'form': form})
 
@@ -345,53 +351,6 @@ def approve_match(request, match_id):
         return redirect('pending_approvals')
 
     return redirect('dashboard')
-
-@login_required
-def admin_requested_sessions(request):
-    """Display the session requests to the admin with optional search functionality."""
-    if not request.user.is_admin:
-        return redirect('dashboard')  # Redirect non-admin users
-
-    # Get the search query from the GET request (if provided)
-    search_query = request.GET.get('search', '').lower()
-
-    # Get all unmatched requests (exclude those with a match)
-    requests = RequestSession.objects.filter(match__isnull=True)
-
-    # If a search query is provided, filter requests based on the query
-    if search_query:
-        requests = requests.filter(
-            Q(student__username__icontains=search_query) |  # Search by student name
-            Q(subject__name__icontains=search_query) |  # Search by subject name
-            Q(proficiency__icontains=search_query)  # Search by proficiency
-        )
-
-    # Sort requests: matching requests come first, others come last
-    requests = sorted(requests, key=lambda r: (
-        not any([  # Ensure you're passing a list (iterable) to any()
-            search_query in r.student.username.lower(),
-            search_query in r.subject.name.lower(),
-            search_query in r.proficiency.lower()
-        ]),
-        r.id  # Secondary sorting by ID to keep original order
-    ))
-
-    # Prepare the context for rendering
-    requests_with_forms = []
-    for request_item in requests:
-        form = TutorMatchForm(request_item)  # Assuming you're using a form for each request
-        requests_with_forms.append({
-            'request': request_item,
-            'form': form
-        })
-
-    # Add is_admin_view to context
-    return render(request, 'admin_requested_sessions.html', {
-        'requests_with_forms': requests_with_forms,
-        'search_query': search_query,
-        'is_admin_view': True,  # Add this flag to the context
-    })
-
 
 
 
@@ -559,6 +518,7 @@ def invoice(request):
         context = {'form' : form, 'paid_sessions': listOfPaidInvoice, 'unpaid_sessions' : listOfUnpaidInvoices}
         return render(request, 'invoice.html', context)
 
+
 def generateInvoice(session_match: Match):
     if not session_match.tutor_approved:
         return
@@ -575,6 +535,7 @@ def generateInvoice(session_match: Match):
             payment=tempPrice
         )
   
+
 @login_prohibited
 def home(request):
     """Display the application's start/home screen."""
@@ -647,10 +608,6 @@ def get_recurring_dates(session, year, month):
     """Generate recurring dates based on session frequency and term."""
     dates = []
     
-    # Get start and end of current month
-    month_start = date(year, month, 1)
-    month_end = date(year, month + 1, 1) - timedelta(days=1) if month < 12 else date(year + 1, 1, 1) - timedelta(days=1)
-
     request_date = session.date_requested
     if(session.frequency == 2.0):
         interlude = 1
@@ -666,24 +623,27 @@ def get_recurring_dates(session, year, month):
             (date(request_date.year + 1, 1, 4), date(request_date.year + 1, 3, 31)),  # Spring
             (date(request_date.year + 1, 4, 15), date(request_date.year + 1, 7, 20))  # Summer
         ]
-    else:
-        academic_year_start = date(request_date.year - 1, 9, 1)
+    elif 1 <= request_date.month <= 3:
+        academic_year_start = date(request_date.year, 1, 4)
         academic_year_end = date(request_date.year, 7, 20)
         term_dates = [
-            (date(request_date.year - 1, 9, 1), date(request_date.year - 1, 12, 20)),  # Autumn
             (date(request_date.year, 1, 4), date(request_date.year, 3, 31)),  # Spring
+            (date(request_date.year, 4, 15), date(request_date.year, 7, 20))  # Summer
+        ]
+    else:
+        academic_year_start = date(request_date.year, 4, 15)
+        academic_year_end = date(request_date.year, 7, 20)
+        term_dates = [
             (date(request_date.year, 4, 15), date(request_date.year, 7, 20))  # Summer
         ]
     
     # Get session days
     session_days = [day.day_of_week for day in session.days.all()]
 
-    # current = month_start
     current = academic_year_start
-    while current <= min(academic_year_end, month_end):
+    while current <= academic_year_end:
         in_term = any(term_start <= current <= term_end for term_start, term_end in term_dates)
-
-        if in_term and pycalendar.day_name[current.weekday()] in session_days and current.month == month:
+        if in_term and pycalendar.day_name[current.weekday()] in session_days and current.month == month and current.year == year:
             dates.append(current.day + 1)
             current += timedelta(days=interlude)
         else:
