@@ -361,14 +361,14 @@ def admin_requested_sessions(request):
     # If a search query is provided, filter requests based on the query
     if search_query:
         requests = requests.filter(
-            Q(student__username__icontains=search_query) |  # Search by student name
-            Q(subject__name__icontains=search_query) |  # Search by subject name
-            Q(proficiency__icontains=search_query)  # Search by proficiency
+            Q(student__username__icontains=search_query) |  
+            Q(subject__name__icontains=search_query) | 
+            Q(proficiency__icontains=search_query)  
         )
 
     # Sort requests: matching requests come first, others come last
     requests = sorted(requests, key=lambda r: (
-        not any([  # Ensure you're passing a list (iterable) to any()
+        not any([  
             search_query in r.student.username.lower(),
             search_query in r.subject.name.lower(),
             search_query in r.proficiency.lower()
