@@ -222,6 +222,18 @@ def student_submits_request(request):
 
     return render(request, 'student_submits_request.html', {'form': form})
 
+@login_required
+def delete_request(request, request_id):
+    """Delete a request session for the logged-in student."""
+    try:
+        unmatched_request = RequestSession.objects.get(id=request_id, student=request.user, match__isnull=True)
+        unmatched_request.delete()
+        messages.success(request, "Request deleted successfully.")
+    except RequestSession.DoesNotExist:
+        messages.error(request, "Request not found or you do not have permission to delete it.")
+    
+    return redirect('student_view_unmatched_requests')
+
 
 @login_required
 def view_all_users(request):
