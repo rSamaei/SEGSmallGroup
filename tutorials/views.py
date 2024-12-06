@@ -65,6 +65,12 @@ def dashboard(request):
             student=current_user,
             match__isnull=True
         ).count()
+
+        pending_approvals_count = Match.objects.filter(
+            request_session__student=current_user,  
+            tutor_approved=False  
+        ).count()
+
         matched_requests_count = Match.objects.filter(request_session__student=current_user, tutor_approved=True).count()
 
         context.update(get_calendar_context(current_user))
@@ -72,6 +78,7 @@ def dashboard(request):
             'unmatched_student_requests': unmatched_student_requests,
             'is_student_view': True,
             'matched_requests_count': matched_requests_count,
+            'pending_approvals_count': pending_approvals_count,
         })
 
     return render(request, 'dashboard.html', context)
@@ -285,13 +292,16 @@ def pending_approvals(request):
     if current_user.is_admin:
         # Admin: See all pending requests
         matches = Match.objects.filter(tutor_approved=False)
-        can_approve = False  # Admins cannot approve requests
+        can_approve = False  
     elif current_user.is_tutor:
         # Tutor: See only their pending requests
         matches = Match.objects.filter(tutor=current_user, tutor_approved=False)
-        can_approve = True  # Tutors can approve their requests
+        can_approve = True 
+    elif current_user.is_student:
+        # Student: See only their own pending requests
+        matches = Match.objects.filter(request_session__student=current_user, tutor_approved=False)
+        can_approve = False 
     else:
-        # Redirect non-admins and non-tutors
         return redirect('dashboard')
 
     matches_data = [
