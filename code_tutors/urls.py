@@ -43,6 +43,7 @@ urlpatterns = [
     path('delete_tutor_subject/<int:subject_id>/', views.delete_tutor_subject, name='delete_tutor_subject'),
 
     path('submit-request/', views.student_submits_request, name='student_submits_request'),
+    path('delete-request/<int:request_id>/', views.delete_request, name='delete_request'),
 
 
     path('invoice/',views.invoice, name='invoice'),

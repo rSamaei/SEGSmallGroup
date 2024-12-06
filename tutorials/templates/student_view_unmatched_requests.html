@@ -15,6 +15,7 @@
               <th>Frequency</th>
               <th>Days</th>
               <th>Date Requested</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -30,6 +31,12 @@
                   {% endfor %}
                 </td>
                 <td>{{ request.date_requested }}</td>
+                <td>
+                  <form method="post" action="{% url 'delete_request' request.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                  </form>
+                </td>
               </tr>
             {% endfor %}
           </tbody>
