@@ -1,47 +1,67 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-3">
-  <div class="container">
+<nav class="navbar navbar-expand-lg navbar-dark mb-3">
+  <div class="container py-2">
     <!-- Brand/logo -->
-    <a class="navbar-brand" href="{% url 'dashboard' %}">
+    <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">
       Code404
     </a>
-     <!-- Responsive toggle button -->
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+    
+    <!-- Responsive toggle button -->
+    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
       <span class="navbar-toggler-icon"></span>
     </button>
+
     <!-- Navbar links -->
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
       <ul class="navbar-nav me-auto">
         <li class="nav-item">
-          <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
+          <a class="nav-link px-3" href="{% url 'dashboard' %}">Dashboard</a>
         </li>
         {% if user.is_admin %}
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'admin_requested_sessions' %}">Requested Sessions</a>
+            <a class="nav-link px-3" href="{% url 'admin_requested_sessions' %}">Requested Sessions</a>
           </li>
         {% endif %}
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'invoice' %}">Invoices</a>
-          </li>
         <li class="nav-item">
-          <a class="nav-link" href="{% url 'calendar_view' %}">Calendar</a>
+          <a class="nav-link px-3" href="{% url 'invoice' %}">Invoices</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="{% url 'dashboard' %}">Placeholder</a>
+          <a class="nav-link px-3" href="{% url 'calendar_view' %}">Calendar</a>
         </li>
         {% if user.is_student %}
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'student_submits_request' %}">Request Session</a>
+            <!-- Student links -->
           </li>
         {% endif %}
-        <!-- {% if user.is_teacher %}
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'teacher_requested_sessions' %}">Requested Sessions</a>
-          </li>
-        {% endif %} -->
       </ul>
 
-    {% if user.is_authenticated %}
-      {% include 'partials/menu.html' %}
-    {% endif %}
+      {% if user.is_authenticated %}
+        {% include 'partials/menu.html' %}
+      {% endif %}
+    </div>
   </div>
 </nav>
+
+<style>
+.navbar {
+  background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.navbar-brand {
+  font-size: 1.5rem;
+  letter-spacing: 0.5px;
+}
+
+.nav-link {
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.nav-link:hover {
+  color: rgba(255,255,255,0.9) !important;
+}
+
+.navbar-toggler:focus {
+  box-shadow: none;
+}
+</style>

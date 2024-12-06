@@ -212,8 +212,16 @@ class TutorMatchForm(forms.Form):
         tutor = self.cleaned_data['tutor']
         match = Match.objects.create(
             request_session=request_session,
-            tutor=tutor
+            tutor=tutor,
+            tutor_approved=False
         )
+
+        for day in request_session.days.all():
+            RequestSessionDay.objects.create(
+                request_session=request_session,
+                day_of_week=day.day_of_week
+            )
+        
         return match
       
 class NewAdminForm(NewPasswordMixin, forms.ModelForm):

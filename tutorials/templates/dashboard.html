@@ -48,7 +48,7 @@
           </div>
         </div> 
         
-        <!-- View pending requests for tutors  -->
+        <!-- View pending requests for admin  -->
         <div class="col-md-4">
           <div class="card mb-3">
               <div class="card-body">
@@ -81,6 +81,20 @@
                 View Your Requests
               </a>
             </div>
+          </div>
+        </div>
+
+        <!-- View pending requests for students  -->
+        <div class="col-md-4">
+          <div class="card mb-3">
+              <div class="card-body">
+                  <h5 class="card-title">Pending Requests</h5>
+                  <p class="card-text">
+                      <span class="h2">{{ pending_approvals_count }}</span><br>
+                      requests awaiting tutor approval
+                  </p>
+                  <a href="{% url 'pending_approvals' %}" class="btn btn-primary">View Pending Requests</a>
+              </div>
           </div>
         </div>
 
