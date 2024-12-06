@@ -65,7 +65,7 @@ class CalendarViewTestCase(TestCase):
             student=self.student,
             subject=self.subject,
             frequency=1.0,  # Weekly
-            date_requested=date(2024, 1, 1)  # Start of Spring term
+            date_requested=date(2024, 8, 10)  # Start of Spring term
         )
         RequestSessionDay.objects.create(
             request_session=request_session,
@@ -77,7 +77,7 @@ class CalendarViewTestCase(TestCase):
             tutor_approved=True
         )
         # Get calendar context for January 2024
-        calendar_context = get_calendar_context(self.admin, month=1, year=2024)
+        calendar_context = get_calendar_context(self.admin, month=1, year=2025)
         # Check session has recurring_dates attribute
         self.assertTrue(hasattr(calendar_context['sessions'][0], 'recurring_dates'))
         # Check recurring dates are in highlighted_dates
@@ -87,7 +87,7 @@ class CalendarViewTestCase(TestCase):
             for date in session.recurring_dates
         ))
         # Check dates are correct (all Mondays in January 2024)
-        expected_dates = [9, 16, 23, 30]  # All Mondays
+        expected_dates = [7, 14, 21, 28]  # All Mondays
         self.assertEqual(sorted(session.recurring_dates), expected_dates)
 
     def test_get_recurring_dates(self):
@@ -97,7 +97,7 @@ class CalendarViewTestCase(TestCase):
             student=self.student,
             subject=self.subject,
             frequency=1.0,  # Weekly
-            date_requested=date(2024, 1, 1),  # Start of Spring term
+            date_requested=date(2024, 8, 10),  # Start of Spring term
             proficiency='Beginner'
         )
         
@@ -108,10 +108,10 @@ class CalendarViewTestCase(TestCase):
         )
         
         # Test January dates (Spring term)
-        dates = get_recurring_dates(request_session, 2024, 1)
+        dates = get_recurring_dates(request_session, 2025, 1)
         
         # Should include all Mondays in January 2024 within term
-        expected_dates = [9, 16, 23, 30]  # All Mondays in January 2024
+        expected_dates = [7, 14, 21, 28]  # All Mondays in January 2024
         self.assertEqual(sorted(dates), expected_dates)
         
     def test_biweekly_recurring_dates(self):
@@ -120,7 +120,7 @@ class CalendarViewTestCase(TestCase):
             student=self.student,
             subject=self.subject,
             frequency=2.0,  # Biweekly
-            date_requested=date(2024, 1, 1),
+            date_requested=date(2024, 8, 10),
             proficiency='Beginner'
         )
         
@@ -134,8 +134,8 @@ class CalendarViewTestCase(TestCase):
             day_of_week='Thursday'
         )
         
-        dates = get_recurring_dates(request_session, 2024, 1)
-        expected_dates = [5, 9, 12, 16, 19, 23, 26, 30]  # Mondays and Thursdays
+        dates = get_recurring_dates(request_session, 2025, 1)
+        expected_dates = [7, 10, 14, 17, 21, 24, 28, 31]  # Mondays and Thursdays
         self.assertEqual(sorted(dates), expected_dates)
 
     def test_term_boundaries(self):
@@ -145,7 +145,7 @@ class CalendarViewTestCase(TestCase):
             student=self.student,
             subject=self.subject,
             frequency=1.0,
-            date_requested=date(2024, 12, 15),  # Near end of Autumn term
+            date_requested=date(2024, 8, 1),
             proficiency='Beginner'
         )
         
@@ -170,7 +170,7 @@ class CalendarViewTestCase(TestCase):
             student=self.student,
             subject=self.subject,
             frequency=1.0,
-            date_requested=date(2024, 1, 1)
+            date_requested=date(2024, 8, 10)
         )
         RequestSessionDay.objects.create(
             request_session=request_session,
@@ -197,7 +197,7 @@ class CalendarViewTestCase(TestCase):
             student=self.student,
             subject=self.subject,
             frequency=1.0,
-            date_requested=date(2024, 1, 1)
+            date_requested=date(2024, 8, 10)
         )
         RequestSessionDay.objects.create(
             request_session=request_session,
