@@ -6,6 +6,26 @@
   border-radius: 0px;
 }
 
+/*
+ * main page
+ */
+
+/* Hero section styles */
+.hero-section {
+  background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%) !important;
+  min-height: 500px;
+  display: flex;
+  align-items: center;
+}
+
+.card {
+  transition: transform 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
 
 /*
  * Cover page
