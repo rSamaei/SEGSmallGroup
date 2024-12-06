@@ -110,8 +110,6 @@ class RequestSession(models.Model):
         frequency_dict = dict(self.FREQUENCY_CHOICES)
         return frequency_dict.get(float(self.frequency), "Unknown")
 
-
-
 class RequestSessionDay(models.Model):
     """Model to represent days associated with a RequestSession."""
     request_session = models.ForeignKey(RequestSession, on_delete=models.CASCADE, related_name='days')
