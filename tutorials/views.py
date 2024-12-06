@@ -263,11 +263,25 @@ def delete_tutor_subject(request, subject_id):
     # Redirect back to the tutor's subjects page
     return redirect('view_all_tutor_subjects')
 
+def is_request_late(request_date):
+    """Check if a request was made after the academic year started."""
+    term_dates = [
+            (date(request_date.year, 9, 1), date(request_date.year, 12, 20)),  # Autumn
+            (date(request_date.year + 1, 1, 4), date(request_date.year + 1, 3, 31)),  # Spring
+            (date(request_date.year + 1, 4, 15), date(request_date.year + 1, 7, 20))  # Summer
+        ]
+    
+    for term_start, _ in term_dates:
+        if request_date >= term_start - timedelta(weeks=2) and request_date <= term_start:
+            return True
+        
+    return False
+
 @login_required
 def admin_requested_sessions(request):
     """Display the session requests to the admin with optional search functionality."""
     if not request.user.is_admin:
-        return redirect('dashboard')  # Redirect non-admin users
+        return redirect('dashboard')  # if not an admin
 
     # Get the search query from the GET request (if provided)
     search_query = request.GET.get('search', '').lower()
@@ -299,7 +313,8 @@ def admin_requested_sessions(request):
         form = TutorMatchForm(request_item)  # Assuming you're using a form for each request
         requests_with_forms.append({
             'request': request_item,
-            'form': form
+            'form': form,
+            'is_late': is_request_late(request_item.date_requested)
         })
 
     # Add is_admin_view to context
@@ -389,22 +404,41 @@ def admin_requested_session_highlighted(request, request_id):
     if not request.user.is_admin:
         return redirect('dashboard')
 
-    # Fetch the specific request session by ID
     session_request = RequestSession.objects.get(id=request_id)
-    
-    # Initialize form with request data if submitted
     form = TutorMatchForm(session_request, request.GET or None)
     
     selected_tutor = None
     if form.is_valid():
-        # Get the selected tutor from the form
+        # if the admin picked a tutor, get the selected tutor
         selected_tutor = form.cleaned_data['tutor']
     
-    # Render the detailed view template with the request, form, and selected tutor
+    request_date = session_request.date_requested
+    if 9 <= request_date.month <= 12:
+        academic_year_start = date(request_date.year, 9, 1)
+        term_dates = [
+            (date(request_date.year, 9, 1), date(request_date.year, 12, 20)),  # Autumn
+            (date(request_date.year + 1, 1, 4), date(request_date.year + 1, 3, 31)),  # Spring
+            (date(request_date.year + 1, 4, 15), date(request_date.year + 1, 7, 20))  # Summer
+        ]
+    elif 1 <= request_date.month <= 7:
+        academic_year_start = date(request_date.year, 1, 4)
+        term_dates = [
+            (date(request_date.year, 1, 4), date(request_date.year, 3, 31)),  # Spring
+            (date(request_date.year, 4, 15), date(request_date.year, 7, 20))  # Summer
+        ]
+    else:
+        academic_year_start = date(request_date.year, 4, 15)
+        term_dates = [
+            (date(request_date.year, 4, 15), date(request_date.year, 7, 20))  # Summer
+        ]
+
     return render(request, 'admin_requested_session_highlighted.html', {
         'request': session_request,
         'form': form,
-        'selected_tutor': selected_tutor
+        'selected_tutor': selected_tutor,
+        'academic_year_start': academic_year_start,
+        'term_dates': term_dates,
+        'late': is_request_late(request_date)
     })
 
 @login_required
@@ -737,7 +771,7 @@ def get_recurring_dates(session, year, month):
         interlude = int(7 / session.frequency)
 
     # calculate academic year dates based on request_date
-    if 9 <= request_date.month <= 12:
+    if 7 <= request_date.month <= 9:
         academic_year_start = date(request_date.year, 9, 1)
         academic_year_end = date(request_date.year + 1, 7, 20)
         term_dates = [
@@ -745,7 +779,7 @@ def get_recurring_dates(session, year, month):
             (date(request_date.year + 1, 1, 4), date(request_date.year + 1, 3, 31)),  # Spring
             (date(request_date.year + 1, 4, 15), date(request_date.year + 1, 7, 20))  # Summer
         ]
-    elif 1 <= request_date.month <= 3:
+    elif 9 < request_date.month <= 12:
         academic_year_start = date(request_date.year, 1, 4)
         academic_year_end = date(request_date.year, 7, 20)
         term_dates = [
