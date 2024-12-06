@@ -6,7 +6,7 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ImproperlyConfigured
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, FileResponse
 from django.shortcuts import redirect, render, get_object_or_404
 from django.views import View
 from django.views.generic.edit import FormView, UpdateView
@@ -23,6 +23,8 @@ import calendar as pycalendar
 from .forms import AddTutorSubjectForm
 from django.utils.timezone import now
 from django.db import IntegrityError
+from tutorials.pdfController import PDFUser
+import os
 
 
 @login_required
@@ -433,6 +435,11 @@ def registerNewAdmin(request):
 
 @login_required
 def invoice(request):
+    filePath = "tutorials/tempInvoice.pdf"
+    if os.path.exists(filePath):
+        os.remove(filePath)
+
+    
     form = None
     if request.user.is_admin:
         if request.method == "GET":
@@ -497,6 +504,29 @@ def invoice(request):
         if request.method == "POST":
             paymentMatchID = request.POST['session']
             session_match = get_object_or_404(Match, id=paymentMatchID)
+
+            if 'pdf' in request.POST:
+                tempPrice = Invoice.objects.get(
+                    match = session_match
+                )
+                tutor = session_match.tutor
+                tutorName = tutor.first_name +" "+ tutor.last_name
+                requestSession = session_match.request_session
+                tutorSub = TutorSubject.objects.get(
+                    tutor = tutor,
+                    subject = requestSession.subject
+                )
+                
+                studName = request.user.first_name +" "+ request.user.last_name
+                PDFUser.generatePDF(studName,tutorName, tutorSub.price, requestSession.frequency, 
+                                    tempPrice.payment, requestSession.subject.name, 
+                                    requestSession.get_frequency_display(), requestSession.proficiency)
+                
+                response = FileResponse(open(filePath, 'rb'), content_type='application/pdf')
+                response['Content-Disposition'] = 'inline; filename="file.pdf"'
+                return response
+            
+            
             tempInvoice = Invoice.objects.get(
                 match = session_match
             )
@@ -534,7 +564,8 @@ def generateInvoice(session_match: Match):
             match=session_match,
             payment=tempPrice
         )
-  
+
+
 
 @login_prohibited
 def home(request):

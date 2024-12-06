@@ -30,6 +30,13 @@
                 <div class="card text-center">
                   <p class="card-text">Total Payment : £{{ key.payment }}</p>
                 </div>
+                {% if user.is_student %}
+                <form method="post">
+                  {% csrf_token %}
+                  <input type="hidden" name="session" value="{{ key.match.id }}">
+                  <button type="submit" name="pdf" class="btn btn-primary">View PDF</button>
+                </form>
+                {% endif %}
             </div>
           </div>
         {% endfor %}
@@ -57,7 +64,8 @@
                   <form method="post">
                     {% csrf_token %}
                     <input type="hidden" name="session" value="{{ key.match.id }}">
-                    <button type="submit" class="btn btn-primary">Pay</button>
+                    <button type="submit" name="pay" class="btn btn-primary">Pay</button>
+                    <button type="submit" name="pdf" class="btn btn-primary">View PDF</button>
                   </form>
                 </div>
               {% endif %}
