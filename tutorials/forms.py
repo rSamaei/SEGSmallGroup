@@ -38,7 +38,7 @@ class RequestSessionForm(forms.ModelForm):
 
     class Meta:
         model = RequestSession
-        fields = ['subject', 'proficiency', 'frequency']
+        fields = ['subject', 'proficiency', 'frequency', 'days']
         widgets = {
             'proficiency': forms.Select(choices=RequestSession.PROFICIENCY_TYPES),
             'frequency': forms.Select(choices=RequestSession.FREQUENCY_CHOICES),

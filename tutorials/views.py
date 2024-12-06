@@ -106,6 +106,7 @@ def view_matched_requests(request):
             'student_proficiency': match.request_session.proficiency,
             'date_requested': match.request_session.date_requested,
             'frequency': Frequency.to_string(match.request_session.frequency),
+            'days': [day.get_day_of_week_display() for day in match.request_session.days.all()]
         }
         for match in matched_requests
     ]
@@ -177,7 +178,7 @@ def student_view_unmatched_requests(request):
     unmatched_requests = RequestSession.objects.filter(
         student=current_user,
         match__isnull=True
-    )
+    ).prefetch_related('days')
 
     context = {
         'unmatched_requests': unmatched_requests
@@ -197,18 +198,30 @@ def student_submits_request(request):
             try:
                 # Create the RequestSession object but don't save it yet
                 new_request = form.save(commit=False)
-                new_request.student = request.user  
-                new_request.date_requested = now().date() 
-                new_request.save()  
+                # Set additional fields
+                new_request.student = request.user  # Assign the logged-in student
+                new_request.date_requested = now().date()  # Set the current date
+                new_request.save()  # Save the RequestSession
+
+                # Handle selected days for the session
+                days_selected = request.POST.getlist('days')  # Get the selected days from the form
+                for day in days_selected:
+                    RequestSessionDay.objects.create(
+                        request_session=new_request,
+                        day_of_week=day
+                    )
+
+                # Redirect to a success page or the student's unmatched requests
                 return redirect('student_view_unmatched_requests')
             except IntegrityError:
                 # Handle duplicate request error
                 messages.error(request, "You have already submitted a request for this subject.")
     else:
-        # Pass the logged-in student to the form for initialisation
+        # Pass the logged-in student to the form for initialization
         form = RequestSessionForm(student=request.user)
 
     return render(request, 'student_submits_request.html', {'form': form})
+
 
 @login_required
 def view_all_users(request):
