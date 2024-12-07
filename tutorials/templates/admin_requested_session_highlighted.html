@@ -16,7 +16,7 @@
                     <p class="card-text"><strong>Student:</strong> {{ request.student.username }}</p>
                     <p class="card-text"><strong>Subject:</strong> {{ request.subject.name }}</p>
                     <p class="card-text"><strong>Proficiency:</strong> {{ request.proficiency }}</p>
-                    <p class="card-text"><strong>Frequency:</strong> {{ request.frequency }} times per week</p>
+                    <p class="card-text"><strong>Frequency:</strong> {{ request.get_frequency_display }}</p>
                     <p class="card-text"><strong>Date Requested:</strong> {{ request.date_requested|date:"F j, Y" }}</p>
                     <h5 class="mt-4">Important Dates</h5>
                     <p class="card-text"><strong>Academic Year Start:</strong> {{ academic_year_start|date:"F j, Y" }}</p>

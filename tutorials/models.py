@@ -106,9 +106,7 @@ class RequestSession(models.Model):
     
     def get_frequency_display(self):
         """Return human-readable frequency."""
-        # Use the defined choices to get the display value
-        frequency_dict = dict(self.FREQUENCY_CHOICES)
-        return frequency_dict.get(float(self.frequency), "Unknown")
+        return dict(self.FREQUENCY_CHOICES).get(float(self.frequency), "Unknown")
 
 class RequestSessionDay(models.Model):
     """Model to represent days associated with a RequestSession."""

@@ -24,6 +24,7 @@ import calendar as pycalendar
 from .forms import AddTutorSubjectForm
 from django.utils.timezone import now
 from django.db import IntegrityError
+from django.core.paginator import Paginator
 
 
 @login_required
@@ -279,49 +280,40 @@ def is_request_late(request_date):
 
 @login_required
 def admin_requested_sessions(request):
-    """Display the session requests to the admin with optional search functionality."""
     if not request.user.is_admin:
-        return redirect('dashboard')  # if not an admin
+        return redirect('dashboard')
 
-    # Get the search query from the GET request (if provided)
-    search_query = request.GET.get('search', '').lower()
-
-    # Get all unmatched requests (exclude those with a match)
+    # Get unmatched requests
     requests = RequestSession.objects.filter(match__isnull=True)
-
-    # If a search query is provided, filter requests based on the query
+    
+    # Handle search
+    search_query = request.GET.get('search', '').lower()
     if search_query:
         requests = requests.filter(
-            Q(student__username__icontains=search_query) |  # Search by student name
-            Q(subject__name__icontains=search_query) |  # Search by subject name
-            Q(proficiency__icontains=search_query)  # Search by proficiency
+            Q(student__username__icontains=search_query) |
+            Q(subject__name__icontains=search_query) |
+            Q(proficiency__icontains=search_query)
         )
 
-    # Sort requests: matching requests come first, others come last
-    requests = sorted(requests, key=lambda r: (
-        not any([  # Ensure you're passing a list (iterable) to any()
-            search_query in r.student.username.lower(),
-            search_query in r.subject.name.lower(),
-            search_query in r.proficiency.lower()
-        ]),
-        r.id  # Secondary sorting by ID to keep original order
-    ))
-
-    # Prepare the context for rendering
+    # Add pagination - 6 items per page
+    paginator = Paginator(requests, 6)
+    page = request.GET.get('page')
+    requests_page = paginator.get_page(page)
+    
+    # Create forms for each request
     requests_with_forms = []
-    for request_item in requests:
-        form = TutorMatchForm(request_item)  # Assuming you're using a form for each request
+    for req in requests_page:
         requests_with_forms.append({
-            'request': request_item,
-            'form': form,
-            'is_late': is_request_late(request_item.date_requested)
+            'request': req,
+            'form': TutorMatchForm(req),
+            'is_late': is_request_late(req.date_requested)
         })
 
-    # Add is_admin_view to context
     return render(request, 'admin_requested_sessions.html', {
         'requests_with_forms': requests_with_forms,
-        'search_query': search_query,
-        'is_admin_view': True,  # Add this flag to the context
+        'page_obj': requests_page,
+        'is_admin_view': True,
+        'search_query': search_query
     })
 
 @login_required
@@ -413,14 +405,14 @@ def admin_requested_session_highlighted(request, request_id):
         selected_tutor = form.cleaned_data['tutor']
     
     request_date = session_request.date_requested
-    if 9 <= request_date.month <= 12:
+    if 4 <= request_date.month < 9:
         academic_year_start = date(request_date.year, 9, 1)
         term_dates = [
             (date(request_date.year, 9, 1), date(request_date.year, 12, 20)),  # Autumn
             (date(request_date.year + 1, 1, 4), date(request_date.year + 1, 3, 31)),  # Spring
             (date(request_date.year + 1, 4, 15), date(request_date.year + 1, 7, 20))  # Summer
         ]
-    elif 1 <= request_date.month <= 7:
+    elif 9 <= request_date.month <= 12:
         academic_year_start = date(request_date.year, 1, 4)
         term_dates = [
             (date(request_date.year, 1, 4), date(request_date.year, 3, 31)),  # Spring
