@@ -148,20 +148,23 @@ h3.profile-title {
   width: 100%; /* Make the mini calendar take the full width of its container */
   border-collapse: collapse; /* Merge table borders */
   table-layout: fixed;
+  margin: 0 auto; /* Center the table */
 }
 
 .mini-calendar-table th,
 .mini-calendar-table td {
   border: 1px solid #ddd; /* Light border for cells */
   text-align: center; /* Center text */
-  padding: 5px; /* Smaller spacing for mini-calendar */
-  height: 40px; /* Control vertical height */
-  font-size: 0.9rem;
+  padding: 8px 12px; /* Increased padding */
+  height: 50px; /* Increased height */
+  font-size: 1rem; /* Slightly larger font */
+  width: 14.28%; /* Equal width for 7 days (100/7) */
 }
 
 .mini-calendar-table thead th {
   background-color: #f8f9fa;
-  height: 30px; /* Smaller header height */
+  height: 40px; /* Increased header height */
+  white-space: nowrap; /* Prevent day names from wrapping */
 }
 
 .mini-calendar-table th {
@@ -191,6 +194,18 @@ h3.profile-title {
     height: 35px;
     padding: 3px;
     font-size: 0.8rem;
+  }
+}
+
+/* Add responsive breakpoint */
+@media (min-width: 768px) {
+  .mini-calendar-table {
+    min-width: 600px; /* Minimum width on larger screens */
+  }
+  
+  .mini-calendar-table th,
+  .mini-calendar-table td {
+    padding: 10px 15px; /* Even more padding on larger screens */
   }
 }
 
