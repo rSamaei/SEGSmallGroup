@@ -16,6 +16,8 @@
   min-height: 500px;
   display: flex;
   align-items: center;
+  margin-top: -1rem; /* Compensate for navbar margin */
+  padding: 3rem 0;   /* Add padding here instead */
 }
 
 .card {
@@ -26,6 +28,28 @@
   transform: translateY(-5px);
 }
 
+.navbar {
+  background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.navbar-brand {
+  font-size: 1.5rem;
+  letter-spacing: 0.5px;
+}
+
+.nav-link {
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.nav-link:hover {
+  color: rgba(255,255,255,0.9) !important;
+}
+
+.navbar-toggler:focus {
+  box-shadow: none;
+}
 
 /*
  * Cover page
