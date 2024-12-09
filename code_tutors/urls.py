@@ -34,6 +34,7 @@ urlpatterns = [
     path('sign_up/', views.SignUpView.as_view(), name='sign_up'),
     path('calendar/', views.calendar_view, name='calendar_view'),
     path('registerAdmin/',views.registerNewAdmin, name='registerAdmin'),
+    path('update-subject/<int:subject_id>/', views.update_tutor_subject, name='update_tutor_subject'),
 
     path('view_all_users/', views.view_all_users, name='view_all_users'),
     path('view_all_tutor_subjects/', views.view_all_tutor_subjects, name='view_all_tutor_subjects'),

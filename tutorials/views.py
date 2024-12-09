@@ -114,36 +114,6 @@ def view_matched_requests(request):
     
     return render(request, 'view_matched_requests.html', {'matched_requests_data': matched_requests_data})
 
-# @login_required
-# def view_matched_requests(request):
-#     """List matched requests for tutors or students."""
-#     current_user = request.user
-
-#     if current_user.is_admin:
-#         matched_requests = Match.objects.filter(tutor_approved=True)
-#     elif current_user.is_tutor:
-#         matched_requests = Match.objects.filter(tutor=request.user, tutor_approved=True)
-#     elif current_user.is_student:
-#         matched_requests = Match.objects.filter(request_session__student=request.user, tutor_approved=True)
-#     else:
-#         return redirect('dashboard')
-
-#     matched_requests_data = [
-#         {
-#             'tutor': match.tutor.username,
-#             'student': match.request_session.student.username,
-#             'subject': match.request_session.subject.name,
-#             'student_proficiency': match.request_session.proficiency,
-#             'date_requested': match.request_session.date_requested,
-#             'frequency': Frequency.to_string(match.request_session.frequency),
-#             'days': [day.get_day_of_week_display() for day in match.request_session.days.all()]
-#         }
-#         for match in matched_requests
-#     ]
-
-#     return render(request, 'view_matched_request.html', {'matched_requests_data': matched_requests_data})
-
-
 @login_required
 def view_all_tutor_subjects(request):
     # Display all the subjects a tutor is available to teach.
@@ -172,6 +142,29 @@ def view_all_tutor_subjects(request):
         'form': form,
     }
     return render(request, 'view_all_tutor_subjects.html', context)
+
+@login_required
+def update_tutor_subject(request, subject_id):
+    """Allow a tutor to update a specific subject they teach."""
+    try:
+        tutor_subject = TutorSubject.objects.get(id=subject_id, tutor=request.user)
+    except TutorSubject.DoesNotExist:
+        messages.error(request, "Subject not found or you don't have permission to edit it.")
+        return redirect('view_all_tutor_subjects')
+
+    if request.method == 'POST':
+        form = AddTutorSubjectForm(request.POST, instance=tutor_subject)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Subject updated successfully!')
+            return redirect('view_all_tutor_subjects')
+        else:
+            messages.error(request, 'Error updating subject. Please try again.')
+    else:
+        form = AddTutorSubjectForm(instance=tutor_subject)
+
+    return render(request, 'update_tutor_subject.html', {'form': form})
+
 
 @login_required
 def add_new_subject(request):
