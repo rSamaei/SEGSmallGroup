@@ -13,7 +13,7 @@ from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
 from django.db.models import Q
 
-from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm, NewAdminForm,RequestSessionForm, SelectTutorForInvoice, SelectStudentsForInvoice
+from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm, NewAdminForm,RequestSessionForm, SelectTutorForInvoice, SelectStudentsForInvoice, UpdateProficiencyForm
 
 from tutorials.helpers import login_prohibited
 
@@ -114,36 +114,6 @@ def view_matched_requests(request):
     
     return render(request, 'view_matched_requests.html', {'matched_requests_data': matched_requests_data})
 
-# @login_required
-# def view_matched_requests(request):
-#     """List matched requests for tutors or students."""
-#     current_user = request.user
-
-#     if current_user.is_admin:
-#         matched_requests = Match.objects.filter(tutor_approved=True)
-#     elif current_user.is_tutor:
-#         matched_requests = Match.objects.filter(tutor=request.user, tutor_approved=True)
-#     elif current_user.is_student:
-#         matched_requests = Match.objects.filter(request_session__student=request.user, tutor_approved=True)
-#     else:
-#         return redirect('dashboard')
-
-#     matched_requests_data = [
-#         {
-#             'tutor': match.tutor.username,
-#             'student': match.request_session.student.username,
-#             'subject': match.request_session.subject.name,
-#             'student_proficiency': match.request_session.proficiency,
-#             'date_requested': match.request_session.date_requested,
-#             'frequency': Frequency.to_string(match.request_session.frequency),
-#             'days': [day.get_day_of_week_display() for day in match.request_session.days.all()]
-#         }
-#         for match in matched_requests
-#     ]
-
-#     return render(request, 'view_matched_request.html', {'matched_requests_data': matched_requests_data})
-
-
 @login_required
 def view_all_tutor_subjects(request):
     # Display all the subjects a tutor is available to teach.
@@ -172,6 +142,37 @@ def view_all_tutor_subjects(request):
         'form': form,
     }
     return render(request, 'view_all_tutor_subjects.html', context)
+
+@login_required
+def update_tutor_subject(request, subject_id):
+    current_user = request.user
+    if not current_user.is_tutor:
+        return redirect('dashboard')
+    
+    # Get the TutorSubject object based on the current user and subject_id
+    tutor_subject = get_object_or_404(TutorSubject, tutor=current_user, id=subject_id)
+
+    # Handle the form submission
+    if request.method == 'POST':
+        form = UpdateProficiencyForm(request.POST, instance=tutor_subject)
+        if form.is_valid():
+            form.save()  # Only update the proficiency field
+            messages.success(request, 'Proficiency level updated successfully!')
+            return redirect('view_all_tutor_subjects')
+        else:
+            messages.error(request, 'There was an error updating your proficiency. Please try again.')
+
+    # If GET request, display form with the current proficiency
+    else:
+        form = UpdateProficiencyForm(instance=tutor_subject)
+
+    context = {
+        'form': form,
+        'tutor_subject': tutor_subject,
+    }
+
+    return render(request, 'update_tutor_subject.html', context)
+
 
 @login_required
 def add_new_subject(request):
