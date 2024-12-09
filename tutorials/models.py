@@ -94,7 +94,7 @@ class RequestSession(models.Model):
 
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='requests')
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
-    frequency = models.DecimalField(max_digits=3, decimal_places=2, default=1.0)  # Added default=1 for once per week
+    frequency = models.DecimalField(max_digits=3, decimal_places=2, default=1.0, choices=FREQUENCY_CHOICES)
     proficiency = models.CharField(max_length=12, choices=PROFICIENCY_TYPES, default='Beginner')
     date_requested = models.DateField(null=False, blank=False)  # Change from DateTimeField to DateField
 
@@ -106,9 +106,7 @@ class RequestSession(models.Model):
     
     def get_frequency_display(self):
         """Return human-readable frequency."""
-        return Frequency.to_string(float(self.frequency))
-
-
+        return dict(self.FREQUENCY_CHOICES).get(float(self.frequency), "Unknown")
 
 class RequestSessionDay(models.Model):
     """Model to represent days associated with a RequestSession."""

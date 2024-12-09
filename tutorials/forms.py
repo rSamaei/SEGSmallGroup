@@ -21,24 +21,35 @@ class AddTutorSubjectForm(forms.ModelForm):
             'proficiency': 'Proficiency Level',
         }
 
+class UpdateProficiencyForm(forms.ModelForm):
+    class Meta:
+        model = TutorSubject
+        fields = ['proficiency']  # Only the proficiency field is needed
+        widgets = {
+            'proficiency': forms.Select(attrs={'class': 'form-control'}),
+        }
+        labels = {
+            'proficiency': 'Proficiency Level',
+        }
+
 class RequestSessionForm(forms.ModelForm):
     """Form for students to create a new session request."""
 
     """We may need this later so commenting it out"""
-    # days = forms.MultipleChoiceField(
-    #     choices=[
-    #         ('Monday', 'Monday'),
-    #         ('Tuesday', 'Tuesday'),
-    #         ('Wednesday', 'Wednesday'),
-    #         ('Thursday', 'Thursday'),
-    #         ('Friday', 'Friday'),
-    #     ],
-    #     widget=forms.CheckboxSelectMultiple
-    # )
+    days = forms.MultipleChoiceField(
+        choices=[
+            ('Monday', 'Monday'),
+            ('Tuesday', 'Tuesday'),
+            ('Wednesday', 'Wednesday'),
+            ('Thursday', 'Thursday'),
+            ('Friday', 'Friday'),
+        ],
+        widget=forms.CheckboxSelectMultiple
+    )
 
     class Meta:
         model = RequestSession
-        fields = ['subject', 'proficiency', 'frequency']
+        fields = ['subject', 'proficiency', 'frequency', 'days']
         widgets = {
             'proficiency': forms.Select(choices=RequestSession.PROFICIENCY_TYPES),
             'frequency': forms.Select(choices=RequestSession.FREQUENCY_CHOICES),
@@ -61,7 +72,14 @@ class RequestSessionForm(forms.ModelForm):
             raise ValidationError("You have already submitted a request for this subject.")
 
         return cleaned_data
+    
+    def clean_frequency(self):
+        frequency = self.cleaned_data.get('frequency')
 
+        if frequency is None:  # No frequency selected
+            raise ValidationError("You must select a frequency.")
+        
+        return frequency
 
 class LogInForm(forms.Form):
     """Form enabling registered users to log in."""
@@ -205,8 +223,16 @@ class TutorMatchForm(forms.Form):
         tutor = self.cleaned_data['tutor']
         match = Match.objects.create(
             request_session=request_session,
-            tutor=tutor
+            tutor=tutor,
+            tutor_approved=False
         )
+
+        for day in request_session.days.all():
+            RequestSessionDay.objects.create(
+                request_session=request_session,
+                day_of_week=day.day_of_week
+            )
+        
         return match
       
 class NewAdminForm(NewPasswordMixin, forms.ModelForm):
@@ -247,36 +273,3 @@ class SelectStudentsForInvoice(forms.Form):
             id__in=student_ids,
             user_type='student'
         ).distinct()
-
-
-
-
-class RequestSessionForm(forms.ModelForm):
-    """Form for creating or updating RequestSession with multiple days."""
-
-    days = forms.MultipleChoiceField(
-        choices=[
-            ('Monday', 'Monday'),
-            ('Tuesday', 'Tuesday'),
-            ('Wednesday', 'Wednesday'),
-            ('Thursday', 'Thursday'),
-            ('Friday', 'Friday'),
-        ],
-        widget=forms.CheckboxSelectMultiple
-    )
-
-    class Meta:
-        model = RequestSession
-        fields = ['subject', 'proficiency', 'days']
-        widgets = {
-            'frequency': Select(attrs={'class': 'form-select'}),
-        }
-
-    def save_days(self, request_session, days):
-        """Save the selected days to the RequestSessionDay model."""
-        # Clear existing days
-        RequestSessionDay.objects.filter(request_session=request_session).delete()
-        # Add new days
-        for day in days:
-            RequestSessionDay.objects.create(request_session=request_session, day_of_week=day)
-

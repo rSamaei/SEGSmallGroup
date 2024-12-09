@@ -6,6 +6,50 @@
   border-radius: 0px;
 }
 
+/*
+ * main page
+ */
+
+/* Hero section styles */
+.hero-section {
+  background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%) !important;
+  min-height: 500px;
+  display: flex;
+  align-items: center;
+  margin-top: -1rem; /* Compensate for navbar margin */
+  padding: 3rem 0;   /* Add padding here instead */
+}
+
+.card {
+  transition: transform 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+.navbar {
+  background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.navbar-brand {
+  font-size: 1.5rem;
+  letter-spacing: 0.5px;
+}
+
+.nav-link {
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.nav-link:hover {
+  color: rgba(255,255,255,0.9) !important;
+}
+
+.navbar-toggler:focus {
+  box-shadow: none;
+}
 
 /*
  * Cover page
@@ -128,20 +172,23 @@ h3.profile-title {
   width: 100%; /* Make the mini calendar take the full width of its container */
   border-collapse: collapse; /* Merge table borders */
   table-layout: fixed;
+  margin: 0 auto; /* Center the table */
 }
 
 .mini-calendar-table th,
 .mini-calendar-table td {
   border: 1px solid #ddd; /* Light border for cells */
   text-align: center; /* Center text */
-  padding: 5px; /* Smaller spacing for mini-calendar */
-  height: 40px; /* Control vertical height */
-  font-size: 0.9rem;
+  padding: 8px 12px; /* Increased padding */
+  height: 50px; /* Increased height */
+  font-size: 1rem; /* Slightly larger font */
+  width: 14.28%; /* Equal width for 7 days (100/7) */
 }
 
 .mini-calendar-table thead th {
   background-color: #f8f9fa;
-  height: 30px; /* Smaller header height */
+  height: 40px; /* Increased header height */
+  white-space: nowrap; /* Prevent day names from wrapping */
 }
 
 .mini-calendar-table th {
@@ -171,6 +218,18 @@ h3.profile-title {
     height: 35px;
     padding: 3px;
     font-size: 0.8rem;
+  }
+}
+
+/* Add responsive breakpoint */
+@media (min-width: 768px) {
+  .mini-calendar-table {
+    min-width: 600px; /* Minimum width on larger screens */
+  }
+  
+  .mini-calendar-table th,
+  .mini-calendar-table td {
+    padding: 10px 15px; /* Even more padding on larger screens */
   }
 }
 
@@ -229,4 +288,51 @@ td {
   width: 14.28%;
   vertical-align: top !important;
   padding: 5px !important;
+}
+
+/* custom.css */
+
+/* Style the scrollable container */
+.scrollable-container {
+  max-height: 80vh; /* Adjust height as necessary */
+  overflow-y: auto; /* Enables vertical scrolling */
+  scrollbar-width: thin; /* For Firefox */
+  scrollbar-color: #888 #ccc; /* For Firefox */
+}
+
+/* For Webkit browsers like Chrome, Safari, Edge */
+.scrollable-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollable-container::-webkit-scrollbar-thumb {
+  background-color: #888;
+  border-radius: 10px;
+}
+
+.scrollable-container::-webkit-scrollbar-thumb:hover {
+  background-color: #555;
+}
+
+.scrollable-container::-webkit-scrollbar-track {
+  background-color: #ccc;
+}
+
+.pagination .page-link {
+    color: #0d6efd;
+    border: none;
+    padding: 0.5rem 1rem;
+    margin: 0 0.2rem;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.pagination .page-item.active .page-link {
+    background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
+    border: none;
+}
+
+.pagination .page-link:hover {
+    background: #e9ecef;
+    transform: translateY(-2px);
 }

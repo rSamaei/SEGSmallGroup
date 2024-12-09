@@ -18,17 +18,10 @@ class TutorMatchFormTestCase(TestCase):
         self.subject = Subject.objects.first()
         self.student = User.objects.filter(user_type='student').first()
         self.tutor = User.objects.filter(user_type='tutor').first()
-        
+        self.request = RequestSession.objects.first()
         # create tutor subject relationship
         self.tutor_subject = TutorSubject.objects.create(
             tutor=self.tutor,
-            subject=self.subject,
-            proficiency='Intermediate'
-        )
-        
-        # create request session
-        self.request = RequestSession.objects.create(
-            student=self.student,
             subject=self.subject,
             proficiency='Intermediate'
         )

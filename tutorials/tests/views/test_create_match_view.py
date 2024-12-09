@@ -38,7 +38,6 @@ class CreateMatchViewTestCase(TestCase):
         """Test post request creates match and redirects."""
         self.client.force_login(self.admin)
         response = self.client.post(self.url, {'tutor': self.tutor.id})
-        # Update: redirect to admin_requested_sessions
         expected_url = reverse('admin_requested_sessions')
         self.assertRedirects(response, expected_url)
 
@@ -46,14 +45,11 @@ class CreateMatchViewTestCase(TestCase):
         """Test post request match created."""
         self.client.force_login(self.admin)
         response = self.client.post(self.url, {'tutor': self.tutor.id})
-        # Update: redirect to admin_requested_sessions
         self.assertRedirects(response, reverse('admin_requested_sessions'))
-        # Check match creation
         self.assertTrue(Match.objects.filter(
             request_session=self.request,
             tutor=self.tutor
         ).exists())
-        # Check success message
         messages = list(get_messages(response.wsgi_request))
         self.assertEqual(str(messages[0]), 'Match created successfully')
 

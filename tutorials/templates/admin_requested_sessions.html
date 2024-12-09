@@ -1,23 +1,39 @@
 {% extends 'base_content.html' %}
+
 {% block content %}
-<div class="container overflow-hidden">
-    <div class="row gy-4">  <-- gy-4 will add a margin between the rows, in other more technical terms it creates vertical gutters -->
+<div class="container">
+    <!-- Search Bar -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <form method="get" action="{% url 'admin_requested_sessions' %}">
+                <input type="text" name="search" class="form-control" value="{{ search_query }}" placeholder="Search for requests...">
+            </form>
+        </div>
+    </div>
+
+    <!-- Request Cards -->
+    <div class="row gy-4">
         {% for item in requests_with_forms %}
-        <div class="col-md-6">
+        <div class="col-md-6 request-card">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Request Details</h5>
-                    <p class="card-text">Student: {{ item.request.student.username }}</p>
-                    <p class="card-text">Subject: {{ item.request.subject.name }}</p>
-                    <p>Proficiency: {{ item.request.proficiency }}</p>
-                    
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h5 class="card-title">Request Details</h5>
+                        {% if item.is_late %}
+                            <span class="badge bg-danger">Late Request</span>
+                        {% endif %}
+                    </div>
+                    <p class="card-text student-name">Student: {{ item.request.student.username }}</p>
+                    <p class="card-text subject-name">Subject: {{ item.request.subject.name }}</p>
+                    <p class="card-text proficiency">Proficiency: {{ item.request.proficiency }}</p>
+
                     <form method="post" action="{% url 'create_match' item.request.id %}">
                         {% csrf_token %}
                         {{ item.form }}
                         <div class="d-flex justify-content-between">
                             <!-- this button submits the form -->
                             <button type="submit" class="btn btn-primary">Create Match</button>
-                            
+
                             <!-- this link does a separate GET request -->
                             <a href="{% url 'admin_requested_session_highlighted' item.request.id %}" 
                                class="btn btn-secondary">View Details</a>
@@ -28,5 +44,42 @@
         </div>
         {% endfor %}
     </div>
+
+    <!-- Pagination -->
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}">&laquo; First</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Previous</a>
+                </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Next</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}">Last &raquo;</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
 </div>
 {% endblock %}
