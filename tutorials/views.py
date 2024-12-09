@@ -310,44 +310,6 @@ def is_request_late(request_date):
     return False
 
 @login_required
-def admin_requested_sessions(request):
-    if not request.user.is_admin:
-        return redirect('dashboard')
-
-    # Get unmatched requests
-    requests = RequestSession.objects.filter(match__isnull=True)
-    
-    # Handle search
-    search_query = request.GET.get('search', '').lower()
-    if search_query:
-        requests = requests.filter(
-            Q(student__username__icontains=search_query) |
-            Q(subject__name__icontains=search_query) |
-            Q(proficiency__icontains=search_query)
-        )
-
-    # Add pagination - 6 items per page
-    paginator = Paginator(requests, 6)
-    page = request.GET.get('page')
-    requests_page = paginator.get_page(page)
-    
-    # Create forms for each request
-    requests_with_forms = []
-    for req in requests_page:
-        requests_with_forms.append({
-            'request': req,
-            'form': TutorMatchForm(req),
-            'is_late': is_request_late(req.date_requested)
-        })
-
-    return render(request, 'admin_requested_sessions.html', {
-        'requests_with_forms': requests_with_forms,
-        'page_obj': requests_page,
-        'is_admin_view': True,
-        'search_query': search_query
-    })
-
-@login_required
 def pending_approvals(request):
     """List pending matches for tutors or admins."""
     current_user = request.user
@@ -423,6 +385,44 @@ def approve_match(request, match_id):
     return redirect('dashboard')
 
 @login_required
+def admin_requested_sessions(request):
+    if not request.user.is_admin:
+        return redirect('dashboard')
+
+    # Get unmatched requests
+    requests = RequestSession.objects.filter(match__isnull=True)
+    
+    # Handle search
+    search_query = request.GET.get('search', '').lower()
+    if search_query:
+        requests = requests.filter(
+            Q(student__username__icontains=search_query) |
+            Q(subject__name__icontains=search_query) |
+            Q(proficiency__icontains=search_query)
+        )
+
+    # Add pagination - 6 items per page
+    paginator = Paginator(requests, 6)
+    page = request.GET.get('page')
+    requests_page = paginator.get_page(page)
+    
+    # Create forms for each request
+    requests_with_forms = []
+    for req in requests_page:
+        requests_with_forms.append({
+            'request': req,
+            'form': TutorMatchForm(req),
+            'is_late': is_request_late(req.date_requested)
+        })
+
+    return render(request, 'admin_requested_sessions.html', {
+        'requests_with_forms': requests_with_forms,
+        'page_obj': requests_page,
+        'is_admin_view': True,
+        'search_query': search_query
+    })
+
+@login_required
 def admin_requested_session_highlighted(request, request_id):
     """Display detailed view of a specific request."""
     if not request.user.is_admin:
@@ -430,7 +430,7 @@ def admin_requested_session_highlighted(request, request_id):
 
     session_request = RequestSession.objects.get(id=request_id)
     form = TutorMatchForm(session_request, request.GET or None)
-    
+        
     selected_tutor = None
     if form.is_valid():
         # if the admin picked a tutor, get the selected tutor
@@ -487,6 +487,52 @@ def create_match(request, request_id):
         return redirect('admin_requested_session_highlighted', request_id=request_id)
     
     return redirect('admin_requested_sessions')
+
+# @login_required
+# def create_match(request, request_id):
+#     """Create a match between request and selected tutor."""
+#     if not request.user.is_admin:
+#         return redirect('dashboard')
+
+#     session = RequestSession.objects.get(id=request_id)
+    
+#     # Assuming the session includes both the student and the subject
+#     student_proficiency = session.request.proficiency
+#     subject = session.request.subject
+    
+#     # Retrieve the matching tutors based on the subject
+#     tutors_for_subject = TutorSubject.objects.filter(subject=subject)
+
+#     # Convert proficiency levels to index for easier comparison
+#     proficiency_levels = ['beginner', 'intermediate', 'advanced']
+    
+#     # Check if there are any tutors who match the student's proficiency level or better
+#     valid_tutors = [
+#         tutor for tutor in tutors_for_subject
+#         if proficiency_levels.index(tutor.proficiency) >= proficiency_levels.index(student_proficiency)
+#     ]
+    
+#     # If there are valid tutors, show them; otherwise, show an error message
+#     if valid_tutors:
+#         # If the form is valid, create the match
+#         if request.method == 'POST':
+#             form = TutorMatchForm(session, request.POST)
+#             if form.is_valid():
+#                 try:
+#                     tempMatch = form.save(request_session=session)
+#                     messages.success(request, 'Match created successfully')
+#                     return redirect('admin_requested_sessions')
+#                 except Exception as e:
+#                     messages.error(request, f'Error creating match: {str(e)}')
+#             else:
+#                 messages.error(request, 'Invalid form submission')
+#             return redirect('admin_requested_session_highlighted', request_id=request_id)
+#     else:
+#         messages.error(request, "No suitable tutors available for this student's proficiency level.")
+#         return redirect('admin_requested_sessions')
+
+#     return redirect('admin_requested_sessions')
+
 
 @login_required
 def registerNewAdmin(request):
