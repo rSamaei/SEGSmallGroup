@@ -114,6 +114,36 @@ def view_matched_requests(request):
     
     return render(request, 'view_matched_requests.html', {'matched_requests_data': matched_requests_data})
 
+# @login_required
+# def view_matched_requests(request):
+#     """List matched requests for tutors or students."""
+#     current_user = request.user
+
+#     if current_user.is_admin:
+#         matched_requests = Match.objects.filter(tutor_approved=True)
+#     elif current_user.is_tutor:
+#         matched_requests = Match.objects.filter(tutor=request.user, tutor_approved=True)
+#     elif current_user.is_student:
+#         matched_requests = Match.objects.filter(request_session__student=request.user, tutor_approved=True)
+#     else:
+#         return redirect('dashboard')
+
+#     matched_requests_data = [
+#         {
+#             'tutor': match.tutor.username,
+#             'student': match.request_session.student.username,
+#             'subject': match.request_session.subject.name,
+#             'student_proficiency': match.request_session.proficiency,
+#             'date_requested': match.request_session.date_requested,
+#             'frequency': Frequency.to_string(match.request_session.frequency),
+#             'days': [day.get_day_of_week_display() for day in match.request_session.days.all()]
+#         }
+#         for match in matched_requests
+#     ]
+
+#     return render(request, 'view_matched_request.html', {'matched_requests_data': matched_requests_data})
+
+
 @login_required
 def view_all_tutor_subjects(request):
     # Display all the subjects a tutor is available to teach.
@@ -345,6 +375,7 @@ def pending_approvals(request):
             'proficiency': match.request_session.proficiency,
             'frequency': Frequency.to_string(match.request_session.frequency),
             'date_requested': match.request_session.date_requested,
+            'days': match.request_session.days.all(),
         }
         for match in matches
     ]
