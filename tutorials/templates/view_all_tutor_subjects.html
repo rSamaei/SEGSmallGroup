@@ -24,15 +24,16 @@
                 <td>{{ request.subject.name }}</td>
                 <td>{{ request.get_proficiency_display }}</td>
                 <td>
+                  <!-- Update Proficiency Form -->
+                  <form method="post" action="{% url 'update_tutor_subject' request.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-warning btn-sm">Update Proficiency</button>
+                  </form>
                   <!-- Delete Form -->
                   <form method="post" action="{% url 'delete_tutor_subject' request.id %}" style="display:inline;">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-danger btn-sm">Delete</button>
                   </form>
-                </td>
-                <td>
-                  <!-- Update Button -->
-                  <a href="{% url 'update_tutor_subject' request.id %}" class="btn btn-warning btn-sm">Update</a>
                 </td>
               </tr>
             {% empty %}
@@ -45,7 +46,7 @@
       </div>
     </div>
   </div>
-
+  
   <!-- Button to Add New Subject -->
   <div class="row mt-5">
     <div class="col-12 text-center">

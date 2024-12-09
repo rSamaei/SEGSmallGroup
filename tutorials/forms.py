@@ -21,6 +21,17 @@ class AddTutorSubjectForm(forms.ModelForm):
             'proficiency': 'Proficiency Level',
         }
 
+class UpdateProficiencyForm(forms.ModelForm):
+    class Meta:
+        model = TutorSubject
+        fields = ['proficiency']  # Only the proficiency field is needed
+        widgets = {
+            'proficiency': forms.Select(attrs={'class': 'form-control'}),
+        }
+        labels = {
+            'proficiency': 'Proficiency Level',
+        }
+
 class RequestSessionForm(forms.ModelForm):
     """Form for students to create a new session request."""
 

@@ -13,7 +13,7 @@ from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
 from django.db.models import Q
 
-from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm, NewAdminForm,RequestSessionForm, SelectTutorForInvoice, SelectStudentsForInvoice
+from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm, NewAdminForm,RequestSessionForm, SelectTutorForInvoice, SelectStudentsForInvoice, UpdateProficiencyForm
 
 from tutorials.helpers import login_prohibited
 
@@ -145,25 +145,33 @@ def view_all_tutor_subjects(request):
 
 @login_required
 def update_tutor_subject(request, subject_id):
-    """Allow a tutor to update a specific subject they teach."""
-    try:
-        tutor_subject = TutorSubject.objects.get(id=subject_id, tutor=request.user)
-    except TutorSubject.DoesNotExist:
-        messages.error(request, "Subject not found or you don't have permission to edit it.")
-        return redirect('view_all_tutor_subjects')
+    current_user = request.user
+    if not current_user.is_tutor:
+        return redirect('dashboard')
+    
+    # Get the TutorSubject object based on the current user and subject_id
+    tutor_subject = get_object_or_404(TutorSubject, tutor=current_user, id=subject_id)
 
+    # Handle the form submission
     if request.method == 'POST':
-        form = AddTutorSubjectForm(request.POST, instance=tutor_subject)
+        form = UpdateProficiencyForm(request.POST, instance=tutor_subject)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Subject updated successfully!')
+            form.save()  # Only update the proficiency field
+            messages.success(request, 'Proficiency level updated successfully!')
             return redirect('view_all_tutor_subjects')
         else:
-            messages.error(request, 'Error updating subject. Please try again.')
-    else:
-        form = AddTutorSubjectForm(instance=tutor_subject)
+            messages.error(request, 'There was an error updating your proficiency. Please try again.')
 
-    return render(request, 'update_tutor_subject.html', {'form': form})
+    # If GET request, display form with the current proficiency
+    else:
+        form = UpdateProficiencyForm(instance=tutor_subject)
+
+    context = {
+        'form': form,
+        'tutor_subject': tutor_subject,
+    }
+
+    return render(request, 'update_tutor_subject.html', context)
 
 
 @login_required

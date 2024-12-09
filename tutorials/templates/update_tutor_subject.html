@@ -2,12 +2,11 @@
 
 {% block content %}
 <div class="container">
-  <h1>Update Subject</h1>
+  <h1>Update Proficiency Level for {{ tutor_subject.subject.name }}</h1>
   <form method="post">
     {% csrf_token %}
     {{ form.as_p }}
-    <button type="submit" class="btn btn-success">Update</button>
-    <a href="{% url 'view_all_tutor_subjects' %}" class="btn btn-secondary">Cancel</a>
+    <button type="submit" class="btn btn-primary">Update Proficiency</button>
   </form>
 </div>
 {% endblock %}
