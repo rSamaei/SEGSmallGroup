@@ -314,10 +314,8 @@ def admin_requested_sessions(request):
     if not request.user.is_admin:
         return redirect('dashboard')
 
-    # Get unmatched requests
-    requests = RequestSession.objects.filter(match__isnull=True)
+    requests = RequestSession.objects.filter(match__isnull=True).order_by('-date_requested')
     
-    # Handle search
     search_query = request.GET.get('search', '').lower()
     if search_query:
         requests = requests.filter(
@@ -326,12 +324,10 @@ def admin_requested_sessions(request):
             Q(proficiency__icontains=search_query)
         )
 
-    # Add pagination - 6 items per page
     paginator = Paginator(requests, 6)
     page = request.GET.get('page')
     requests_page = paginator.get_page(page)
     
-    # Create forms for each request
     requests_with_forms = []
     for req in requests_page:
         requests_with_forms.append({

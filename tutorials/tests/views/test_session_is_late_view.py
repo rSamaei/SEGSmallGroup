@@ -32,7 +32,7 @@ class IsRequestLateTestCase(TestCase):
             date_requested=date(2024, 8, 29)
         )
         # Add request day
-        RequestSessionDay.objects.crseate(
+        RequestSessionDay.objects.create(
             request_session=self.request,
             day_of_week='Monday'
         )
