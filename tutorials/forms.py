@@ -184,20 +184,8 @@ class SignUpForm(NewPasswordMixin, forms.ModelForm):
         return user
 
 class TutorMatchForm(forms.Form):
-    """
-    A form for matching tutors with request sessions based on subject and proficiency.
-    This form provides a single ModelChoiceField for selecting a tutor from a filtered
-    queryset of users who:
-        1. Have the user type 'tutor'
-        2. Match the subject of the request session
-        3. Match the proficiency level of the request session
-    Attributes:
-        tutor (ModelChoiceField): A dropdown field for selecting a tutor with 
-            Bootstrap styling.
-    Args:
-        request_session: The session request object containing subject and 
-            proficiency requirements.
-    """
+    """A form for matching tutors with request sessions based on subject and proficiency."""
+
     tutor = forms.ModelChoiceField(
         queryset=None,
         widget=forms.Select(attrs={'class': 'form-select mb-3'})
@@ -205,18 +193,22 @@ class TutorMatchForm(forms.Form):
 
     def __init__(self, request_session: RequestSession, *args, **kwargs) -> None:
         """Initialize form with filtered tutor queryset based on request requirements."""
-        # Call parent class initialization
         super().__init__(*args, **kwargs)
-        
-        # Filter tutors based on:
-        # 1. Must be a tutor type user
-        # 2. Must teach the requested subject
-        # 3. Must have required proficiency level
+
+        # Define proficiency levels in order of hierarchy
+        proficiency_hierarchy = {'beginner': 1,'intermediate': 2,'advanced': 3}
+
+        # Get the requested proficiency level and normalize it to lowercase
+        requested_proficiency = request_session.proficiency.lower()
+
         self.fields['tutor'].queryset = User.objects.filter(
-            user_type='tutor',  # Only get tutor users
-            tutor_subjects__subject=request_session.subject,  # Match subject
-            tutor_subjects__proficiency=request_session.proficiency  # Match proficiency
-        ).distinct()  # Remove duplicates if tutor teaches multiple subjects
+            user_type='tutor',
+            tutor_subjects__subject=request_session.subject,
+            tutor_subjects__proficiency__in=[
+                prof.capitalize() for prof, level in proficiency_hierarchy.items()
+                if level >= proficiency_hierarchy[requested_proficiency]
+            ]
+        ).distinct()
 
     def save(self, request_session: RequestSession) -> Match:
         """Save the match to the database."""

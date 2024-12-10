@@ -316,24 +316,18 @@ def delete_user(request, user_id):
     user_to_delete = get_object_or_404(User, id=user_id)
 
     if request.method == 'POST':
-        # Delete related data
         from .models import RequestSession, Match, Invoice
 
-        # Delete all RequestSessions where the user is the student
         RequestSession.objects.filter(student=user_to_delete).delete()
 
-        # Delete all Matches where the user is the tutor or matches associated with the user's RequestSessions
         matches_to_delete = Match.objects.filter(
             Q(tutor=user_to_delete) | Q(request_session__student=user_to_delete)
         )
 
-        # Delete related Invoices for those matches
         Invoice.objects.filter(match__in=matches_to_delete).delete()
 
-        # Delete the matches
         matches_to_delete.delete()
 
-        # Finally, delete the user
         user_to_delete.delete()
 
         return redirect('view_all_users')
@@ -344,10 +338,8 @@ def delete_user(request, user_id):
 @login_required
 def delete_tutor_subject(request, subject_id):
     """Delete a tutor's subject from the system."""
-    # Ensure the user is the tutor who owns the subject
     subject = get_object_or_404(TutorSubject, id=subject_id)
     
-    # Check if the logged-in user is the tutor who owns this subject
     if subject.tutor != request.user:
         return redirect('view_all_tutor_subjects')  # Redirect if the tutor doesn't own the subject
     
@@ -456,6 +448,28 @@ def approve_match(request, match_id):
         return redirect('pending_approvals')
 
     return redirect('dashboard')
+
+@login_required
+def reject_match(request, match_id):
+    """Reject a match, deleting the Match object while keeping the RequestSession."""
+    if not request.user.is_tutor:
+        return redirect('dashboard')  # Only tutors can reject matches
+
+    try:
+        # Ensure the match exists and belongs to the tutor
+        match = Match.objects.get(id=match_id, tutor=request.user)
+    except Match.DoesNotExist:
+        messages.error(request, "Match not found or not assigned to you.")
+        return redirect('pending_approvals')
+
+    if request.method == "POST":
+        # Delete the match
+        match.delete()
+        messages.success(request, "Match rejected successfully.")
+        return redirect('pending_approvals')
+
+    return redirect('dashboard')
+
 
 @login_required
 def admin_requested_sessions(request):
