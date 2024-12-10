@@ -88,17 +88,25 @@ def dashboard(request):
 def view_matched_requests(request):
     """Display a table of matched requests for a tutor, student, or admin."""
     
+    # Determine matches based on the user's role
     if request.user.is_admin:
-        # Admin can see all approved matched requests
         matched_requests = Match.objects.filter(tutor_approved=True)
     elif request.user.is_tutor:
-        # Tutors can see only approved matches where they are the tutor
         matched_requests = Match.objects.filter(tutor=request.user, tutor_approved=True)
     else:
-        # Students can see only approved matches where they are the student
         matched_requests = Match.objects.filter(request_session__student=request.user, tutor_approved=True)
     
-    # Fetch the relevant details to be shown in the table
+    # Handle search functionality
+    search_query = request.GET.get('search', '').lower()
+    if search_query:
+        matched_requests = matched_requests.filter(
+            Q(tutor__username__icontains=search_query) |
+            Q(request_session__student__username__icontains=search_query) |
+            Q(request_session__subject__name__icontains=search_query) |
+            Q(request_session__proficiency__icontains=search_query)
+        )
+    
+    # Prepare data for rendering
     matched_requests_data = [
         {
             'tutor': match.tutor.username,
@@ -112,7 +120,14 @@ def view_matched_requests(request):
         for match in matched_requests
     ]
     
-    return render(request, 'view_matched_requests.html', {'matched_requests_data': matched_requests_data})
+    return render(
+        request,
+        'view_matched_requests.html',
+        {
+            'matched_requests_data': matched_requests_data,
+            'search_query': search_query,
+        }
+    )
 
 @login_required
 def view_all_tutor_subjects(request):
@@ -272,13 +287,25 @@ def view_all_users(request):
     """Display all users in a separate page."""
     current_user = request.user
     if not current_user.is_admin:
-        # Redirect to dashboard if the user is not an admin
         return redirect('dashboard')
 
+    # Search functionality
+    search_query = request.GET.get('search', '').lower()
     all_users = User.objects.all()
-    context = {'all_users': all_users}
-    return render(request, 'view_all_users.html', context)
+    if search_query:
+        all_users = all_users.filter(
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(username__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(user_type__icontains=search_query)
+        )
 
+    context = {
+        'all_users': all_users,
+        'search_query': search_query,
+    }
+    return render(request, 'view_all_users.html', context)
 @login_required
 def delete_tutor_subject(request, subject_id):
     """Delete a tutor's subject from the system."""
@@ -309,39 +336,47 @@ def is_request_late(request_date):
         
     return False
 
-@login_required
-def admin_requested_sessions(request):
-    if not request.user.is_admin:
-        return redirect('dashboard')
 
-    requests = RequestSession.objects.filter(match__isnull=True).order_by('-date_requested')
-    
-    search_query = request.GET.get('search', '').lower()
-    if search_query:
-        requests = requests.filter(
-            Q(student__username__icontains=search_query) |
-            Q(subject__name__icontains=search_query) |
-            Q(proficiency__icontains=search_query)
-        )
 
-    paginator = Paginator(requests, 6)
-    page = request.GET.get('page')
-    requests_page = paginator.get_page(page)
-    
-    requests_with_forms = []
-    for req in requests_page:
-        requests_with_forms.append({
-            'request': req,
-            'form': TutorMatchForm(req),
-            'is_late': is_request_late(req.date_requested)
-        })
+# @login_required
+# def pending_approvals(request):
+#     """List pending matches for tutors or admins."""
+#     current_user = request.user
 
-    return render(request, 'admin_requested_sessions.html', {
-        'requests_with_forms': requests_with_forms,
-        'page_obj': requests_page,
-        'is_admin_view': True,
-        'search_query': search_query
-    })
+#     if current_user.is_admin:
+#         # Admin: See all pending requests
+#         matches = Match.objects.filter(tutor_approved=False)
+#         can_approve = False  
+#     elif current_user.is_tutor:
+#         # Tutor: See only their pending requests
+#         matches = Match.objects.filter(tutor=current_user, tutor_approved=False)
+#         can_approve = True 
+#     elif current_user.is_student:
+#         # Student: See only their own pending requests
+#         matches = Match.objects.filter(request_session__student=current_user, tutor_approved=False)
+#         can_approve = False 
+#     else:
+#         return redirect('dashboard')
+
+#     matches_data = [
+#         {
+#             'id': match.id,
+#             'student': match.request_session.student.username,
+#             'tutor_username': match.tutor.username,
+#             'subject': match.request_session.subject.name,
+#             'proficiency': match.request_session.proficiency,
+#             'frequency': Frequency.to_string(match.request_session.frequency),
+#             'date_requested': match.request_session.date_requested,
+#             'days': match.request_session.days.all(),
+#         }
+#         for match in matches
+#     ]
+
+#     return render(
+#         request,
+#         'pending_approvals.html',
+#         {'matches_data': matches_data, 'can_approve': can_approve}
+#     )
 
 @login_required
 def pending_approvals(request):
@@ -349,19 +384,25 @@ def pending_approvals(request):
     current_user = request.user
 
     if current_user.is_admin:
-        # Admin: See all pending requests
         matches = Match.objects.filter(tutor_approved=False)
-        can_approve = False  
+        can_approve = False
     elif current_user.is_tutor:
-        # Tutor: See only their pending requests
         matches = Match.objects.filter(tutor=current_user, tutor_approved=False)
-        can_approve = True 
+        can_approve = True
     elif current_user.is_student:
-        # Student: See only their own pending requests
         matches = Match.objects.filter(request_session__student=current_user, tutor_approved=False)
-        can_approve = False 
+        can_approve = False
     else:
         return redirect('dashboard')
+
+    # Search functionality
+    search_query = request.GET.get('search', '').lower()
+    if search_query:
+        matches = matches.filter(
+            Q(request_session__student__username__icontains=search_query) |
+            Q(request_session__subject__name__icontains=search_query) |
+            Q(tutor__username__icontains=search_query)
+        )
 
     matches_data = [
         {
@@ -380,8 +421,13 @@ def pending_approvals(request):
     return render(
         request,
         'pending_approvals.html',
-        {'matches_data': matches_data, 'can_approve': can_approve}
+        {
+            'matches_data': matches_data,
+            'can_approve': can_approve,
+            'search_query': search_query
+        }
     )
+
 
 @login_required
 def approve_match(request, match_id):
@@ -417,6 +463,40 @@ def approve_match(request, match_id):
         return redirect('pending_approvals')
 
     return redirect('dashboard')
+
+@login_required
+def admin_requested_sessions(request):
+    if not request.user.is_admin:
+        return redirect('dashboard')
+
+    requests = RequestSession.objects.filter(match__isnull=True).order_by('-date_requested')
+    
+    search_query = request.GET.get('search', '').lower()
+    if search_query:
+        requests = requests.filter(
+            Q(student__username__icontains=search_query) |
+            Q(subject__name__icontains=search_query) |
+            Q(proficiency__icontains=search_query)
+        )
+
+    paginator = Paginator(requests, 6)
+    page = request.GET.get('page')
+    requests_page = paginator.get_page(page)
+    
+    requests_with_forms = []
+    for req in requests_page:
+        requests_with_forms.append({
+            'request': req,
+            'form': TutorMatchForm(req),
+            'is_late': is_request_late(req.date_requested)
+        })
+
+    return render(request, 'admin_requested_sessions.html', {
+        'requests_with_forms': requests_with_forms,
+        'page_obj': requests_page,
+        'is_admin_view': True,
+        'search_query': search_query
+    })
 
 @login_required
 def admin_requested_session_highlighted(request, request_id):
