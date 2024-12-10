@@ -306,6 +306,41 @@ def view_all_users(request):
         'search_query': search_query,
     }
     return render(request, 'view_all_users.html', context)
+
+@login_required
+def delete_user(request, user_id):
+    """Confirm and delete a user along with their related data."""
+    if not request.user.is_admin:
+        return redirect('dashboard')
+
+    user_to_delete = get_object_or_404(User, id=user_id)
+
+    if request.method == 'POST':
+        # Delete related data
+        from .models import RequestSession, Match, Invoice
+
+        # Delete all RequestSessions where the user is the student
+        RequestSession.objects.filter(student=user_to_delete).delete()
+
+        # Delete all Matches where the user is the tutor or matches associated with the user's RequestSessions
+        matches_to_delete = Match.objects.filter(
+            Q(tutor=user_to_delete) | Q(request_session__student=user_to_delete)
+        )
+
+        # Delete related Invoices for those matches
+        Invoice.objects.filter(match__in=matches_to_delete).delete()
+
+        # Delete the matches
+        matches_to_delete.delete()
+
+        # Finally, delete the user
+        user_to_delete.delete()
+
+        return redirect('view_all_users')
+
+    return render(request, 'confirm_delete_user.html', {'user': user_to_delete})
+
+
 @login_required
 def delete_tutor_subject(request, subject_id):
     """Delete a tutor's subject from the system."""
@@ -335,48 +370,6 @@ def is_request_late(request_date):
             return True
         
     return False
-
-
-
-# @login_required
-# def pending_approvals(request):
-#     """List pending matches for tutors or admins."""
-#     current_user = request.user
-
-#     if current_user.is_admin:
-#         # Admin: See all pending requests
-#         matches = Match.objects.filter(tutor_approved=False)
-#         can_approve = False  
-#     elif current_user.is_tutor:
-#         # Tutor: See only their pending requests
-#         matches = Match.objects.filter(tutor=current_user, tutor_approved=False)
-#         can_approve = True 
-#     elif current_user.is_student:
-#         # Student: See only their own pending requests
-#         matches = Match.objects.filter(request_session__student=current_user, tutor_approved=False)
-#         can_approve = False 
-#     else:
-#         return redirect('dashboard')
-
-#     matches_data = [
-#         {
-#             'id': match.id,
-#             'student': match.request_session.student.username,
-#             'tutor_username': match.tutor.username,
-#             'subject': match.request_session.subject.name,
-#             'proficiency': match.request_session.proficiency,
-#             'frequency': Frequency.to_string(match.request_session.frequency),
-#             'date_requested': match.request_session.date_requested,
-#             'days': match.request_session.days.all(),
-#         }
-#         for match in matches
-#     ]
-
-#     return render(
-#         request,
-#         'pending_approvals.html',
-#         {'matches_data': matches_data, 'can_approve': can_approve}
-#     )
 
 @login_required
 def pending_approvals(request):
