@@ -9,14 +9,12 @@ from random import randint, choice, sample
 
 DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 
-# addded user_type to these
 user_fixtures = [
     {'username': '@johndoe', 'email': 'john.doe@example.org', 'first_name': 'John', 'last_name': 'Doe', 'user_type': 'admin'},
     {'username': '@janedoe', 'email': 'jane.doe@example.org', 'first_name': 'Jane', 'last_name': 'Doe', 'user_type': 'tutor'},
     {'username': '@charlie', 'email': 'charlie.johnson@example.org', 'first_name': 'Charlie', 'last_name': 'Johnson', 'user_type': 'student'},
 ]
 
-# for subject data
 subject_names = [
     'Discrete Maths', 'Machine Learning', 'C++', 'Python', 'Java', 
     'SQL', 'Neural Networks', 'Assembly', 'Rust', 'C'
