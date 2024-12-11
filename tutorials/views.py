@@ -832,15 +832,12 @@ def calendar_view(request):
     """Display a full calendar with matched schedules."""
     current_user = request.user
 
-    # Get month, year and filter parameters from request
     month = int(request.GET.get('month', date.today().month))
     year = int(request.GET.get('year', date.today().year))
     selected_user = request.GET.get('user')
 
-    # Use the helper function to get calendar context
     calendar_context = get_calendar_context(current_user, month, year, selected_user)
 
-    # Calculate previous and next month
     prev_month = month - 1 if month > 1 else 12
     prev_year = year if month > 1 else year - 1
     next_month = month + 1 if month < 12 else 1
@@ -856,8 +853,8 @@ def calendar_view(request):
         'prev_year': prev_year,
         'next_month': next_month,
         'next_year': next_year,
-        'users': User.objects.exclude(user_type='admin') if current_user.is_admin else None,  # exclude admins from user timetables
-        'selected_user': selected_user,  # the selected user for the timetable from the admin
+        'users': User.objects.exclude(user_type='admin') if current_user.is_admin else None,  # exclude admins from choice
+        'selected_user': selected_user
     }
 
     return render(request, 'calendar.html', context)
@@ -872,7 +869,6 @@ def get_recurring_dates(session, year, month):
     else:
         interlude = int(7 / session.frequency)
 
-    # calculate academic year dates based on request_date
     if 7 <= request_date.month <= 9:
         academic_year_start = date(request_date.year, 9, 1)
         academic_year_end = date(request_date.year + 1, 7, 20)
@@ -895,7 +891,6 @@ def get_recurring_dates(session, year, month):
             (date(request_date.year, 4, 15), date(request_date.year, 7, 20))  # Summer
         ]
 
-    # Get session days
     session_days = [day.day_of_week for day in session.days.all()]
 
     current = academic_year_start
@@ -919,20 +914,21 @@ def get_calendar_context(user, month=None, year=None, selected_user=None):
     if year is None:
         year = date.today().year
 
-    # Filter sessions based on user type with tutor_approved check
     if user.user_type == 'student':
+        # students can only see their sessions
         sessions = RequestSession.objects.filter(
             student=user,
             match__isnull=False,
             match__tutor_approved=True
         ).select_related('match', 'subject', 'match__tutor').prefetch_related('days')
-    elif user.user_type == 'tutor':
+    elif user.user_type == 'tutor':\
+        # tutors can only see their approved sessions
         sessions = RequestSession.objects.filter(
             match__tutor=user,
             match__tutor_approved=True
         ).select_related('match', 'subject', 'student').prefetch_related('days')
     else:
-        # Admin view with optional user filter
+        # admin can see all sessions unless they filtered for a particlar user
         if selected_user:
             selected_user_obj = User.objects.get(username=selected_user)
             if selected_user_obj.is_student:
@@ -952,7 +948,6 @@ def get_calendar_context(user, month=None, year=None, selected_user=None):
                 match__tutor_approved=True
             ).select_related('match', 'subject', 'student', 'match__tutor').prefetch_related('days')
 
-    # Get recurring dates for each session
     highlighted_dates = set()
     for session in sessions:
         recurring_dates = get_recurring_dates(session, year, month)

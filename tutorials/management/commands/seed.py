@@ -44,6 +44,32 @@ request_session_fixtures = [
     }
 ]
 
+request_session_days_fixtures = [
+    [
+        {
+            'request_session': {
+                'student': '@charlie',
+                'subject': 'Python'
+            },
+            'day_of_week': 'Monday'
+        },
+        {
+            'request_session': {
+                'student': '@charlie',
+                'subject': 'Java'
+            },
+            'day_of_week': 'Wednesday, Thursday'
+        },
+        {
+            'request_session': {
+                'student': '@charlie',
+                'subject': 'SQL'
+            },
+            'day_of_week': 'Friday'
+        }
+    ]
+]
+
 TutorSubject_fixtures = [
     {
         'tutor': '@janedoe',
@@ -152,13 +178,26 @@ class Command(BaseCommand):
         for req in request_session_fixtures:
             student = User.objects.get(username=req['student'])
             subject = Subject.objects.get(name=req['subject'])
-            RequestSession.objects.create(
+            request_session = RequestSession.objects.create(
                 student=student,
                 subject=subject,
                 proficiency=req['proficiency'],
                 frequency=req['frequency'],
                 date_requested=req['date_requested']
             )
+            if req['frequency'] == 0.5 or req['frequency'] == 1.0:
+                day = choice(DAYS_OF_WEEK)
+                RequestSessionDay.objects.create(
+                    request_session=request_session,
+                    day_of_week=day
+                )
+            elif req['frequency'] == 2.0:
+                days = sample(DAYS_OF_WEEK, k=2)
+                for day in days:
+                    RequestSessionDay.objects.create(
+                        request_session=request_session,
+                        day_of_week=day
+                    )
 
     def create_request_sessions(self):
         students = User.objects.filter(user_type='student')
