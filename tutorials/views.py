@@ -909,11 +909,11 @@ def get_recurring_dates(session, year, month):
             (date(request_date.year + 1, 4, 15), date(request_date.year + 1, 7, 20))  # Summer
         ]
     elif 9 < request_date.month <= 12:
-        academic_year_start = date(request_date.year, 1, 4)
-        academic_year_end = date(request_date.year, 7, 20)
+        academic_year_start = date(request_date.year + 1, 1, 4)
+        academic_year_end = date(request_date.year + 1, 7, 20)
         term_dates = [
-            (date(request_date.year, 1, 4), date(request_date.year, 3, 31)),  # Spring
-            (date(request_date.year, 4, 15), date(request_date.year, 7, 20))  # Summer
+            (date(request_date.year + 1, 1, 4), date(request_date.year + 1, 3, 31)),  # Spring
+            (date(request_date.year + 1, 4, 15), date(request_date.year + 1, 7, 20))  # Summer
         ]
     else:
         academic_year_start = date(request_date.year, 4, 15)
@@ -921,7 +921,7 @@ def get_recurring_dates(session, year, month):
         term_dates = [
             (date(request_date.year, 4, 15), date(request_date.year, 7, 20))  # Summer
         ]
-    
+
     # Get session days
     session_days = [day.day_of_week for day in session.days.all()]
 
