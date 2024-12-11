@@ -10,6 +10,7 @@ The members of the team are:
 
 ## Project structure
 The project is called `code404`.  It currently consists of a single app `tutorials`.
+Details on how to see and test functinality is provided at the bottom of this README file
 
 ## Deployed version of the application
 The deployed version of the application can be found at [*enter url here*](*enter_url_here*).
@@ -45,7 +46,10 @@ Run all tests with:
 $ python3 manage.py test
 ```
 
-*The above instructions should work in your version of the application.  If there are deviations, declare those here in bold.  Otherwise, remove this line.*
+To test functionality:
+```
+User @charlie is seeded with a matched session which will appear in calendar. @janedoe is matched with @charlie on this subject, and will show the same sessions on her calendar, furthermore @janedoe can approve of a session requested from @charlie, which will then allow both to see them on the calendar if accepted, leading on from this, @charlie can now provide the bank transfer number for the invoice on this session. Otherwise, to create own data all pages work as intended and can be used to create and view sessions, or match them as an admin
+```
 
 ## Sources
 The packages used by this application are specified in `requirements.txt`
