@@ -193,7 +193,6 @@ def update_tutor_subject(request, subject_id):
 
     return render(request, 'update_tutor_subject.html', context)
 
-
 @login_required
 def add_new_subject(request):
     """Display a form to allow tutors to add a new subject."""
@@ -286,7 +285,6 @@ def delete_request(request, request_id):
     
     return redirect('student_view_unmatched_requests')
 
-
 @login_required
 def view_all_users(request):
     """Display all users in a separate page."""
@@ -344,7 +342,6 @@ def delete_user(request, user_id):
         return redirect('view_all_users')
 
     return render(request, 'confirm_delete_user.html', {'user': user_to_delete})
-
 
 @login_required
 def delete_tutor_subject(request, subject_id):
@@ -426,7 +423,6 @@ def pending_approvals(request):
         }
     )
 
-
 @login_required
 def approve_match(request, match_id):
     """Approve a match, setting tutor_approved=True."""
@@ -458,6 +454,27 @@ def approve_match(request, match_id):
 
         generateInvoice(match)
         messages.success(request, "Match approved successfully.")
+        return redirect('pending_approvals')
+
+    return redirect('dashboard')
+
+@login_required
+def reject_match(request, match_id):
+    """Reject a match, deleting the Match object while keeping the RequestSession."""
+    if not request.user.is_tutor:
+        return redirect('dashboard')  # Only tutors can reject matches
+
+    try:
+        # Ensure the match exists and belongs to the tutor
+        match = Match.objects.get(id=match_id, tutor=request.user)
+    except Match.DoesNotExist:
+        messages.error(request, "Match not found or not assigned to you.")
+        return redirect('pending_approvals')
+
+    if request.method == "POST":
+        # Delete the match
+        match.delete()
+        messages.success(request, "Match rejected successfully.")
         return redirect('pending_approvals')
 
     return redirect('dashboard')
@@ -792,7 +809,6 @@ def log_out(request):
 
     logout(request)
     return redirect('home')
-
 
 class PasswordView(LoginRequiredMixin, FormView):
     """Display password change screen and handle password change requests."""
