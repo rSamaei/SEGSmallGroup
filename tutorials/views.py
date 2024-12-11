@@ -876,32 +876,31 @@ class SignUpView(LoginProhibitedMixin, FormView):
 
 @login_required
 def calendar_view(request):
-    """Display a full calendar with matched schedules."""
     current_user = request.user
-
+    search_query = request.GET.get('search', '') # get the current search query
+    
     month = int(request.GET.get('month', date.today().month))
     year = int(request.GET.get('year', date.today().year))
-    selected_user = request.GET.get('user')
 
-    calendar_context = get_calendar_context(current_user, month, year, selected_user)
-
-    prev_month = month - 1 if month > 1 else 12
-    prev_year = year if month > 1 else year - 1
-    next_month = month + 1 if month < 12 else 1
-    next_year = year if month < 12 else year + 1
+    calendar_context = get_calendar_context(
+        user=current_user,
+        month=month,
+        year=year,
+        search_query=search_query
+    )
 
     context = {
+        **calendar_context,
+        'search_query': search_query,  # preserve the search query by adding it to context
         'calendar_month': calendar_context['calendar_month'],
         'highlighted_dates': calendar_context['highlighted_dates'],
         'sessions': calendar_context['sessions'],
         'month_name': date(year, month, 1).strftime('%B'),
         'year': year,
-        'prev_month': prev_month,
-        'prev_year': prev_year,
-        'next_month': next_month,
-        'next_year': next_year,
-        'users': User.objects.exclude(user_type='admin') if current_user.is_admin else None,  # exclude admins from choice
-        'selected_user': selected_user
+        'prev_month': month - 1 if month > 1 else 12,
+        'prev_year': year if month > 1 else year - 1,
+        'next_month': month + 1 if month < 12 else 1,
+        'next_year': year if month < 12 else year + 1,
     }
 
     return render(request, 'calendar.html', context)
@@ -954,7 +953,7 @@ def get_recurring_dates(session, year, month):
         calendar will then cycle through the calendar which is just a table with numbers and add it in if the number is the same"""
     return dates
 
-def get_calendar_context(user, month=None, year=None, selected_user=None):
+def get_calendar_context(user, month=None, year=None, search_query=None):
     """Get calendar context for the user."""
     if month is None:
         month = date.today().month
@@ -975,25 +974,23 @@ def get_calendar_context(user, month=None, year=None, selected_user=None):
             match__tutor_approved=True
         ).select_related('match', 'subject', 'student').prefetch_related('days')
     else:
-        # admin can see all sessions unless they filtered for a particlar user
-        if selected_user:
-            selected_user_obj = User.objects.get(username=selected_user)
-            if selected_user_obj.is_student:
-                sessions = RequestSession.objects.filter(
-                    student=selected_user_obj,
-                    match__isnull=False,
-                    match__tutor_approved=True
-                )
-            elif selected_user_obj.is_tutor:
-                sessions = RequestSession.objects.filter(
-                    match__tutor=selected_user_obj,
-                    match__tutor_approved=True
-                )
+        # admins can see or search through all sessions
+        if search_query:
+            sessions = RequestSession.objects.filter(
+                Q(student__username__icontains=search_query) |
+                Q(subject__name__icontains=search_query) |
+                Q(proficiency__icontains=search_query) |
+                Q(match__tutor__username__icontains=search_query)
+            ).filter(
+                match__isnull=False,
+                match__tutor_approved=True
+            ).select_related('match', 'subject', 'student', 'match__tutor')
         else:
             sessions = RequestSession.objects.filter(
                 match__isnull=False,
                 match__tutor_approved=True
             ).select_related('match', 'subject', 'student', 'match__tutor').prefetch_related('days')
+
 
     highlighted_dates = set()
     for session in sessions:
@@ -1006,4 +1003,3 @@ def get_calendar_context(user, month=None, year=None, selected_user=None):
         'highlighted_dates': highlighted_dates,
         'sessions': sessions
     }
-
