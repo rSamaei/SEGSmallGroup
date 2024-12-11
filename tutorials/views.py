@@ -285,6 +285,55 @@ def delete_request(request, request_id):
     return redirect('student_view_unmatched_requests')
 
 @login_required
+def modify_request(request, request_id):
+    """Allow a student to modify an existing unmatched request."""
+    try:
+        # Get the existing request
+        unmatched_request = RequestSession.objects.get(
+            id=request_id, 
+            student=request.user, 
+            match__isnull=True
+        )
+    except RequestSession.DoesNotExist:
+        messages.error(request, "Request not found or you do not have permission to modify it.")
+        return redirect('student_view_unmatched_requests')
+
+    if request.method == 'POST':
+        # Delete the old request
+        unmatched_request.delete()
+
+        # Process the submitted form as a new request
+        form = RequestSessionForm(request.POST, student=request.user)
+        if form.is_valid():
+            new_request = form.save(commit=False)
+            new_request.student = request.user
+            new_request.date_requested = now().date()
+            new_request.save()
+
+            # Handle selected days for the session
+            days_selected = request.POST.getlist('days')
+            for day in days_selected:
+                RequestSessionDay.objects.create(
+                    request_session=new_request,
+                    day_of_week=day
+                )
+
+            messages.success(request, "Request modified successfully.")
+            return redirect('student_view_unmatched_requests')
+    else:
+        # Pre-fill the form with the existing request data
+        initial_data = {
+            'subject': unmatched_request.subject,
+            'proficiency': unmatched_request.proficiency,
+            'frequency': unmatched_request.frequency,
+            'days': [day.day_of_week for day in unmatched_request.days.all()],
+        }
+        form = RequestSessionForm(initial=initial_data, student=request.user)
+
+    return render(request, 'modify_request.html', {'form': form})
+
+
+@login_required
 def view_all_users(request):
     """Display all users in a separate page."""
     current_user = request.user
