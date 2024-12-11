@@ -498,8 +498,6 @@ def approve_match(request, match_id):
                     day_of_week=day
                 )
 
-        recurring_dates = get_recurring_dates(request_session, request_session.date_requested.year, request_session.date_requested.month)
-
         generateInvoice(match)
         messages.success(request, "Match approved successfully.")
         return redirect('pending_approvals')
@@ -572,7 +570,7 @@ def admin_requested_session_highlighted(request, request_id):
     
     selected_tutor = None
     if form.is_valid():
-        # if the admin picked a tutor, get the selected tutor
+        # get the tutor the admin picked
         selected_tutor = form.cleaned_data['tutor']
     
     request_date = session_request.date_requested
