@@ -3,6 +3,17 @@
 {% block content %}
 <div class="container">
     <h1>Pending Match Approvals</h1>
+
+    <!-- Search Bar -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <form method="get" action="{% url 'pending_approvals' %}">
+                <input type="text" name="search" class="form-control" value="{{ search_query }}" placeholder="Search...">
+            </form>
+        </div>
+    </div>
+
+    <!-- Pending Matches Table -->
     <table class="table table-bordered">
         <thead>
             <tr>
@@ -12,6 +23,7 @@
                 <th>Proficiency</th>
                 <th>Frequency</th>
                 <th>Date Requested</th>
+                <th>Days Requested</th> 
                 {% if can_approve %}
                 <th>Action</th>
                 {% endif %}
@@ -26,6 +38,11 @@
                 <td>{{ match.proficiency }}</td>
                 <td>{{ match.frequency }}</td>
                 <td>{{ match.date_requested }}</td>
+                <td>
+                    {% for day in match.days %}
+                        {{ day.get_day_of_week_display }}<br>
+                    {% endfor %}
+                </td>
                 {% if can_approve %}
                 <td>
                     <form method="post" action="{% url 'approve_match' match.id %}">

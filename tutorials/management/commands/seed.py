@@ -90,9 +90,9 @@ class Command(BaseCommand):
         students = User.objects.filter(user_type='student')
         subjects = Subject.objects.all()
         
-        # Generate dates for the next 30 days
-        today = date.today()
-        possible_dates = [today + timedelta(days=x) for x in range(30)]
+        year = date.today().year - 1 if date.today().month >= 1 and date.today().month < 9 else date.today().year
+        start = date(year, 7, 1)
+        possible_dates = [start + timedelta(days=x) for x in range(180)]
 
         for student in students:    # create a request session for each student in the database
             for _ in range(randint(1, 3)):  # fill the database with each student requesting 1 to 3 subjects

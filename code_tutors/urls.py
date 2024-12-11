@@ -34,6 +34,8 @@ urlpatterns = [
     path('sign_up/', views.SignUpView.as_view(), name='sign_up'),
     path('calendar/', views.calendar_view, name='calendar_view'),
     path('registerAdmin/',views.registerNewAdmin, name='registerAdmin'),
+    path('update_tutor_subject/<int:subject_id>/', views.update_tutor_subject, name='update_tutor_subject'),
+    path('delete_user/<int:user_id>/', views.delete_user, name='delete_user'),
 
     path('view_all_users/', views.view_all_users, name='view_all_users'),
     path('view_all_tutor_subjects/', views.view_all_tutor_subjects, name='view_all_tutor_subjects'),
@@ -43,6 +45,7 @@ urlpatterns = [
     path('delete_tutor_subject/<int:subject_id>/', views.delete_tutor_subject, name='delete_tutor_subject'),
 
     path('submit-request/', views.student_submits_request, name='student_submits_request'),
+    path('delete-request/<int:request_id>/', views.delete_request, name='delete_request'),
 
 
     path('invoice/',views.invoice, name='invoice'),

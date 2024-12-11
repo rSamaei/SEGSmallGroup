@@ -13,7 +13,9 @@
               <th>Subject</th>
               <th>Proficiency</th>
               <th>Frequency</th>
+              <th>Days</th>
               <th>Date Requested</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -23,7 +25,18 @@
                 <td>{{ request.subject.name }}</td>
                 <td>{{ request.get_proficiency_display }}</td>
                 <td>{{ request.get_frequency_display }}</td>
+                <td>
+                  {% for day in request.days.all %}
+                    {{ day.get_day_of_week_display }}<br>
+                  {% endfor %}
+                </td>
                 <td>{{ request.date_requested }}</td>
+                <td>
+                  <form method="post" action="{% url 'delete_request' request.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                  </form>
+                </td>
               </tr>
             {% endfor %}
           </tbody>

@@ -21,6 +21,17 @@ class AddTutorSubjectForm(forms.ModelForm):
             'proficiency': 'Proficiency Level',
         }
 
+class UpdateProficiencyForm(forms.ModelForm):
+    class Meta:
+        model = TutorSubject
+        fields = ['proficiency']  # Only the proficiency field is needed
+        widgets = {
+            'proficiency': forms.Select(attrs={'class': 'form-control'}),
+        }
+        labels = {
+            'proficiency': 'Proficiency Level',
+        }
+
 class RequestSessionForm(forms.ModelForm):
     """Form for students to create a new session request."""
 
@@ -38,7 +49,7 @@ class RequestSessionForm(forms.ModelForm):
 
     class Meta:
         model = RequestSession
-        fields = ['subject', 'proficiency', 'frequency']
+        fields = ['subject', 'proficiency', 'frequency', 'days']
         widgets = {
             'proficiency': forms.Select(choices=RequestSession.PROFICIENCY_TYPES),
             'frequency': forms.Select(choices=RequestSession.FREQUENCY_CHOICES),
@@ -212,8 +223,16 @@ class TutorMatchForm(forms.Form):
         tutor = self.cleaned_data['tutor']
         match = Match.objects.create(
             request_session=request_session,
-            tutor=tutor
+            tutor=tutor,
+            tutor_approved=False
         )
+
+        for day in request_session.days.all():
+            RequestSessionDay.objects.create(
+                request_session=request_session,
+                day_of_week=day.day_of_week
+            )
+        
         return match
       
 class NewAdminForm(NewPasswordMixin, forms.ModelForm):

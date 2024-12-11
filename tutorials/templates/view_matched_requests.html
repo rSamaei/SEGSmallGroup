@@ -3,7 +3,13 @@
 {% block content %}
   <div class="container">
     <h2>Matched Requests</h2>
-    <table class="table">
+
+    <!-- Search Bar -->
+    <form method="get" action="{% url 'view_matched_requests' %}" class="mb-3">
+      <input type="text" name="search" class="form-control" value="{{ search_query }}" placeholder="Search matched requests...">
+    </form>
+
+    <table class="table table-bordered">
       <thead>
         <tr>
           <th scope="col">Tutor</th>
@@ -11,6 +17,7 @@
           <th scope="col">Subject</th>
           <th scope="col">Student Proficiency</th>
           <th scope="col">Date Requested</th>
+          <th scope="col">Days</th>
           <th scope="col">Frequency</th>
         </tr>
       </thead>
@@ -22,15 +29,19 @@
             <td>{{ match.subject }}</td>
             <td>{{ match.student_proficiency }}</td>
             <td>{{ match.date_requested }}</td>
+            <td>
+              {% for day in match.days %}
+                {{ day }}<br>
+              {% endfor %}
+            </td>
             <td>{{ match.frequency }}</td>
           </tr>
         {% empty %}
           <tr>
-            <td colspan="6">No matched requests found.</td>
+            <td colspan="7" class="text-center">No matched requests found.</td>
           </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 {% endblock %}
-

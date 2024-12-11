@@ -1,175 +1,169 @@
 {% extends 'base_content.html' %}
 {% block content %}
-<div class="container">
-  <div class="row">
-    <div class="col-12">
-      <h1>Welcome to your dashboard {{ user.username }}</h1>
-      {% if is_admin_view %}
-        <h2>Admin</h2>
-      {% elif is_tutor_view %}
-        <h2>Tutor</h2>
-      {% else %}
-        <h2>Student</h2>
-      {% endif %}
+<div class="container-fluid p-0">
+  <!-- Hero Section -->
+  <div class="hero-section bg-primary text-white py-5">
+    <div class="container">
+      <div class="row align-items-center">
+        <!-- Left Side - Welcome Text -->
+        <div class="col-md-6">
+          <p class="lead mb-4">Welcome to your dashboard</p>
+          <h1 class="display-4 fw-bold">{{ user.username }}</h1>
+        </div>
 
-    </div>
-      {% if is_admin_view %}
-        <!-- <h2>Admin Dashboard</h2> -->
-        <!-- View unmatched requests  -->
-        <div class="col-md-4">
-            <div class="card mb-3">
+        <!-- Right Side - Calendar -->
+         {% if is_admin_view %}
+          <div class="col-md-6">
+            <div class="card bg-light text-dark">
+              <div class="card-body">
+                <h2 class="card-title mb-3 text-center">Admin Dashboard</h2>
+                <p class="card-text text-center">You have administrative privileges.</p>
+              </div>
+            </div>
+          </div>
+          {% else %}
+            <div class="col-md-6">
+              <div class="card bg-light text-dark">
                 <div class="card-body">
-                    <h5 class="card-title">Unmatched Requests</h5>
-                    <p class="card-text">
-                        <span class="h2">{{ unmatched_count }}</span>
-                        <br>
-                        pending requests
-                    </p>
-                    <a href="{% url 'admin_requested_sessions' %}" class="btn btn-primary">
-                        View All Requests
-                    </a>
+                  <h2 class="card-title mb-3">Mini Calendar</h2>
+                  {% include 'partials/mini-calendar.html' %}
                 </div>
-            </div>
-        </div>
-
-        <!-- View all subjects  -->
-        <div class="col-md-4">
-          <div class="card mb-3">
-            <div class="card-body">
-              <h5 class="card-title">View All Users</h5>
-              <p class="card-text">
-                <span class="h2">{{ total_users_count }}</span><br>
-                users in the system
-              </p>
-              <a href="{% url 'view_all_users' %}" class="btn btn-primary">
-                View All Users
-              </a>
-            </div>
-          </div>
-        </div> 
-        
-        <!-- View pending requests for tutors  -->
-        <div class="col-md-4">
-          <div class="card mb-3">
-              <div class="card-body">
-                  <h5 class="card-title">Pending Requests</h5>
-                  <p class="card-text">
-                      <span class="h2">{{ pending_approvals_count }}</span><br>
-                      requests awaiting tutor approval
-                  </p>
-                  <a href="{% url 'pending_approvals' %}" class="btn btn-primary">View Pending Requests</a>
               </div>
-          </div>
-        </div>
-
-      {% else %}
-
-        <!-- Student/Tutor Dashboard -->
-        <div class="col-md-8">
-        <!-- Student  -->
-        {% if is_student_view %}
-        <!-- Student views unmatched requests -->
-        <div class="col-md-4">
-          <div class="card mb-3">
-            <div class="card-body">
-              <h5 class="card-title">Your Unmatched Requests</h5>
-              <p class="card-text">
-                <span class="h2">{{ unmatched_student_requests }}</span><br>
-                unmatched requests
-              </p>
-              <a href="{% url 'student_view_unmatched_requests' %}" class="btn btn-primary">
-                View Your Requests
-              </a>
             </div>
-          </div>
-        </div>
-
-        <!-- Tutor  -->
-        {% elif is_tutor_view %}
-        <!-- View Tutor Subjects  -->
-        <div class="col-md-4">
-          <div class="card mb-3">
-            <div class="card-body">
-              <h5 class="card-title">View Subjects</h5>
-              <p class="card-text">
-                <span class="h2">{{ total_subjects_count }}</span>
-                <br>
-                subjects available to teach
-              </p>
-              <a href="{% url 'view_all_tutor_subjects' %}" class="btn btn-primary">
-                View All Subjects
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <!-- Box for Pending Approvals for tutors -->
-        <div class="col-md-4">
-          <div class="card mb-3">
-              <div class="card-body">
-                  <h5 class="card-title">Pending Approvals</h5>
-                  <p class="card-text">
-                      <span class="h2">{{ pending_approvals_count }}</span><br>
-                      matches require your approval
-                  </p>
-                  <a href="{% url 'pending_approvals' %}" class="btn btn-warning">View Pending Approvals</a>
-              </div>
-          </div>
-        </div>
-
-        {% endif %}
-
-        </div>
-        <div class="col-md-4">
-          <h2>Mini Calendar</h2>
-          <table class="mini-calendar-table">
-            <thead>
-              <tr>
-                <th>Sun</th>
-                <th>Mon</th>
-                <th>Tue</th>
-                <th>Wed</th>
-                <th>Thu</th>
-                <th>Fri</th>
-                <th>Sat</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for week in calendar_month %}
-              <tr>
-                {% for day in week %}
-                {% if day == 0 %}
-                <td></td>
-                {% elif day in highlighted_dates %}
-                <td class="highlighted-day">{{ day }}</td>
-                {% else %}
-                <td>{{ day }}</td>
-                {% endif %}
-                {% endfor %}
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-          <a href="{% url 'calendar_view' %}" class="btn btn-secondary mt-3">View Full Calendar</a>
-        </div>
-
-    {% endif %}
-    <!-- Box to show matched requests -->
-    <div class="col-md-4">
-      <div class="card mb-3">
-        <div class="card-body">
-          <h5 class="card-title">Matched Requests</h5>
-          <p class="card-text">
-            <span class="h2">{{ matched_requests_count }}</span><br>
-            total matched requests
-          </p>
-          <a href="{% url 'view_matched_requests' %}" class="btn btn-primary">
-            View Matched Requests
-          </a>
-        </div>
+          {% endif %}
       </div>
     </div>
   </div>
-</div>
 
+  <!-- Features Section -->
+  <div class="container mt-5">
+    <div class="row g-4">
+        {% if is_admin_view %}
+            <!-- Admin Cards -->
+            <div class="col-lg-4 col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">Unmatched Requests</h5>
+                        <p class="card-text">
+                            <span class="h2 d-block mb-3">{{ unmatched_count }}</span>
+                            pending requests
+                        </p>
+                        <a href="{% url 'admin_requested_sessions' %}" class="btn btn-primary mt-auto">
+                            View All Requests
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">View All Users</h5>
+                        <p class="card-text">
+                            <span class="h2 d-block mb-3">{{ total_users_count }}</span>
+                            users in the system
+                        </p>
+                        <a href="{% url 'view_all_users' %}" class="btn btn-primary mt-auto">
+                            View All Users
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">Pending Requests</h5>
+                        <p class="card-text">
+                            <span class="h2 d-block mb-3">{{ pending_approvals_count }}</span>
+                            requests awaiting tutor approval
+                        </p>
+                        <a href="{% url 'pending_approvals' %}" class="btn btn-primary mt-auto">
+                            View Pending Requests
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        {% else %}
+            {% if is_student_view %}
+                <div class="col-lg-4 col-md-6">
+                    <div class="card shadow-sm">
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">Your Unmatched Requests</h5>
+                            <p class="card-text">
+                                <span class="h2 d-block mb-3">{{ unmatched_student_requests }}</span>
+                                unmatched requests
+                            </p>
+                            <a href="{% url 'student_view_unmatched_requests' %}" class="btn btn-primary mt-auto">
+                                View Your Requests
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 col-md-6">
+                    <div class="card shadow-sm">
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">Pending Requests</h5>
+                            <p class="card-text">
+                                <span class="h2 d-block mb-3">{{ pending_approvals_count }}</span>
+                                requests awaiting tutor approval
+                            </p>
+                            <a href="{% url 'pending_approvals' %}" class="btn btn-primary mt-auto">
+                                View Pending Requests
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+            {% elif is_tutor_view %}
+                <div class="col-lg-4 col-md-6">
+                    <div class="card shadow-sm">
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">View Subjects</h5>
+                            <p class="card-text">
+                                <span class="h2 d-block mb-3">{{ total_subjects_count }}</span>
+                                subjects available to teach
+                            </p>
+                            <a href="{% url 'view_all_tutor_subjects' %}" class="btn btn-primary mt-auto">
+                                View All Subjects
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 col-md-6">
+                    <div class="card shadow-sm">
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">Pending Approvals</h5>
+                            <p class="card-text">
+                                <span class="h2 d-block mb-3">{{ pending_approvals_count }}</span>
+                                matches require your approval
+                            </p>
+                            <a href="{% url 'pending_approvals' %}" class="btn btn-warning mt-auto">
+                                View Pending Approvals
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        {% endif %}
+        <div class="col-lg-4 col-md-6">
+          <div class="card shadow-sm">
+              <div class="card-body d-flex flex-column">
+                  <h5 class="card-title">Matched Requests</h5>
+                  <p class="card-text">
+                      <span class="h2 d-block mb-3">{{ matched_requests_count }}</span>
+                      total matched requests
+                  </p>
+                  <a href="{% url 'view_matched_requests' %}" class="btn btn-warning mt-auto">
+                      View Matched Requests
+                  </a>
+              </div>
+          </div>
+      </div>
+    </div>
+</div>
+</div>
 {% endblock %}

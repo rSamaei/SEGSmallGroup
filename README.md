@@ -9,7 +9,7 @@ The members of the team are:
 - Reza Samaei
 
 ## Project structure
-The project is called `task_manager`.  It currently consists of a single app `tasks`.
+The project is called `code404`.  It currently consists of a single app `tutorials`.
 
 ## Deployed version of the application
 The deployed version of the application can be found at [*enter url here*](*enter_url_here*).

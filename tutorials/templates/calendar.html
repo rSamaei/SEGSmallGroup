@@ -19,8 +19,11 @@
   {% endif %}
 
   <div class="d-flex justify-content-between mb-3">
-    <a href="?month={{ prev_month }}&year={{ prev_year }}" class="btn btn-primary">Previous</a>
-    <a href="?month={{ next_month }}&year={{ next_year }}" class="btn btn-primary">Next</a>
+    <a href="?month={{ prev_month }}&year={{ prev_year }}{% if selected_user %}&user={{ selected_user }}{% endif %}" 
+       class="btn btn-primary">Previous</a>
+    <h4 class="mb-0 align-self-center">{{ current_month|date:"F Y" }}</h4>
+    <a href="?month={{ next_month }}&year={{ next_year }}{% if selected_user %}&user={{ selected_user }}{% endif %}" 
+       class="btn btn-primary">Next</a>
   </div>
   <table class="table table-bordered">
     <thead>
