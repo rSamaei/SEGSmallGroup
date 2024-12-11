@@ -1,0 +1,13 @@
+{% extends 'base_content.html' %}
+
+{% block content %}
+<div class="container">
+  <h1>Modify Request</h1>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+    <a href="{% url 'student_view_unmatched_requests' %}" class="btn btn-secondary">Cancel</a>
+  </form>
+</div>
+{% endblock %}
