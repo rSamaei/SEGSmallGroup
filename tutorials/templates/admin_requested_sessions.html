@@ -31,10 +31,7 @@
                         {% csrf_token %}
                         {{ item.form }}
                         <div class="d-flex justify-content-between">
-                            <!-- this button submits the form -->
                             <button type="submit" class="btn btn-primary">Create Match</button>
-
-                            <!-- this link does a separate GET request -->
                             <a href="{% url 'admin_requested_session_highlighted' item.request.id %}" 
                                class="btn btn-secondary">View Details</a>
                         </div>

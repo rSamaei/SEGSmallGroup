@@ -12,7 +12,7 @@ class PDFUser():
     #Price3: 460, 348
     #Lesson: 57, 445
 
-    def createOverlay(student, tutor, price1, price2, price3, subject, freq, prof):
+    def createOverlay(student, tutor, price1, price2, price3, subject, freq, prof, bank_transfer):
         packet = BytesIO()
         can = canvas.Canvas(packet)
         can.drawString(57,600,student)
@@ -23,16 +23,22 @@ class PDFUser():
         can.drawString(57,445,subject)
         can.drawString(57,425,freq)
         can.drawString(57,405,prof)
+        if bank_transfer and bank_transfer.strip():
+            can.drawString(57,385,"Bank Transfer: " + bank_transfer)
+        else:
+            can.drawString(57,385,"Bank Transfer: Pending")
+            
         can.save()
         packet.seek(0)
         return PdfReader(packet)
     
 
-    def generatePDF(student, tutor, price1, price2, price3, subject, freq, prof):
+    def generatePDF(student, tutor, price1, price2, price3, subject, freq, prof, bank_transfer):
         path = "tutorials/BaseInvoice.pdf"
         input_pdf = PdfReader(path)
         writer = PdfWriter()
-        overlay = PDFUser.createOverlay(student, tutor, str(price1), str(price2), str(price3), subject, freq, prof)
+        overlay = PDFUser.createOverlay(student, tutor, str(price1), str(price2), str(price3), 
+                                  subject, freq, prof, bank_transfer)
         for page_number, page in enumerate(input_pdf.pages):
             if page_number == 0:
                 page.merge_page(overlay.pages[0])
@@ -40,7 +46,3 @@ class PDFUser():
 
         with open("tutorials/tempInvoice.pdf", "wb") as output_file:
             writer.write(output_file)
-        
-
-    
-

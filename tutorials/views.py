@@ -13,21 +13,20 @@ from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
 from django.db.models import Q
 
-from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm, NewAdminForm,RequestSessionForm, SelectTutorForInvoice, SelectStudentsForInvoice, UpdateProficiencyForm
+from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, TutorMatchForm, NewAdminForm,RequestSessionForm, SelectTutorForInvoice, UpdateProficiencyForm
 
-from tutorials.helpers import login_prohibited
+from tutorials.helpers import InvoiceService, login_prohibited
 
 from tutorials.models import RequestSession, TutorSubject, User, Match, RequestSessionDay, Frequency, Invoice
 from datetime import date, timedelta
 
 import calendar as pycalendar
-from .forms import AddTutorSubjectForm
+from .forms import AddTutorSubjectForm, PayInvoice
 from django.utils.timezone import now
 from django.db import IntegrityError
 
 from django.core.paginator import Paginator
 
-from tutorials.pdfController import PDFUser
 import os
 
 
@@ -592,138 +591,80 @@ def registerNewAdmin(request):
 
 @login_required
 def invoice(request):
-    filePath = "tutorials/tempInvoice.pdf"
-    if os.path.exists(filePath):
-        os.remove(filePath)
+    def handle_admin_view():
+        form = SelectTutorForInvoice(request.GET if request.method == "GET" else None)
+        if request.method == "GET" and form.is_valid():
+            tutor = form.cleaned_data.get('tutor')
+            matches = Match.objects.filter(tutor=tutor, tutor_approved=True)
+            paid, unpaid = InvoiceService.get_user_invoices(matches)
+            return render(request, 'invoice.html', {
+                'form': form,
+                'paid_sessions': paid,
+                'unpaid_sessions': unpaid
+            })
+        return render(request, 'invoice.html', {'form': form, 'paid_sessions': None})
 
-    
-    form = None
-    if request.user.is_admin:
-        if request.method == "GET":
-            form = SelectTutorForInvoice(request.GET)
-            if form.is_valid():
-                selectedTutor = form.cleaned_data.get('tutor')
-                allMatches = Match.objects.filter(
-                    tutor=selectedTutor,
-                    tutor_approved=True  
-                )
-                listOfPaidInvoice = []
-                listOfUnpaidInvoices = []
-                for match in allMatches:
-                    invoices = Invoice.objects.filter(match=match)
-                    if invoices.exists():  # Ensure the queryset is not empty
-                        invoice = invoices.first()
-                        if invoice.payment_status == 'paid':
-                            listOfPaidInvoice.append(invoice)
-                        else:
-                            listOfUnpaidInvoices.append(invoice)
-                context = {'form' : form, 'paid_sessions': listOfPaidInvoice, 'unpaid_sessions' : listOfUnpaidInvoices}
-                return render(request, 'invoice.html', context)
-            else:
-                form = SelectTutorForInvoice()
-                context = {'form' : form, 'paid_sessions':None}
-                return render(request, 'invoice.html', context)
-
-        elif request.method == "POST":
-            paymentMatchID = request.POST['session']
-            session_match = get_object_or_404(Match, id=paymentMatchID)
-            tempInvoice = Invoice.objects.get(match = session_match)
-            tempInvoice.payment_status = 'paid'
-            tempInvoice.save()
-
-            form = SelectTutorForInvoice()
-            context = {'form' : form, 'paid_sessions':None}
-            return render(request, 'invoice.html', context)
-
-        else:
-            form = SelectTutorForInvoice()
-            context = {'form' : form, 'paid_sessions':None}
-            return render(request, 'invoice.html', context)
-
-    elif request.user.is_tutor:
-        allMatches = Match.objects.filter(
-            tutor=request.user,
-            tutor_approved=True 
-        )
-        listOfPaidInvoice = []
-        listOfUnpaidInvoices = []
-        for match in allMatches:
-            invoices = Invoice.objects.filter(match=match)
-            if invoices.exists():  # Ensure the queryset is not empty
-                invoice = invoices.first()
-                if invoice.payment_status == 'paid':
-                    listOfPaidInvoice.append(invoice)
-                else:
-                    listOfUnpaidInvoices.append(invoice)
-        context = {'form' : form, 'paid_sessions': listOfPaidInvoice, 'unpaid_sessions' : listOfUnpaidInvoices}
-        return render(request, 'invoice.html', context)
-
-    elif request.user.is_student:
-        if request.method == "POST":
-            paymentMatchID = request.POST['session']
-            session_match = get_object_or_404(Match, id=paymentMatchID)
-
-            if 'pdf' in request.POST:
-                tempPrice = Invoice.objects.get(
-                    match = session_match
-                )
-                tutor = session_match.tutor
-                tutorName = tutor.first_name +" "+ tutor.last_name
-                requestSession = session_match.request_session
-                tutorSub = TutorSubject.objects.get(
-                    tutor = tutor,
-                    subject = requestSession.subject
-                )
-                
-                studName = request.user.first_name +" "+ request.user.last_name
-                PDFUser.generatePDF(studName,tutorName, tutorSub.price, requestSession.frequency, 
-                                    tempPrice.payment, requestSession.subject.name, 
-                                    requestSession.get_frequency_display(), requestSession.proficiency)
-                
-                response = FileResponse(open(filePath, 'rb'), content_type='application/pdf')
-                response['Content-Disposition'] = 'inline; filename="file.pdf"'
-                return response
-            
-            
-            tempInvoice = Invoice.objects.get(
-                match = session_match
+    def handle_tutor_view():
+        matches = Match.objects.filter(tutor=request.user, tutor_approved=True)
+        paid, unpaid = InvoiceService.get_user_invoices(matches)
+        
+        if request.method == "POST" and 'pdf' in request.POST:
+            match = get_object_or_404(Match, id=request.POST.get('session'))
+            invoice = Invoice.objects.get(match=match)
+            InvoiceService.generate_pdf(request.user, match, invoice)
+            return FileResponse(
+                open("tutorials/tempInvoice.pdf", 'rb'),
+                content_type='application/pdf',
+                as_attachment=False
             )
+            
+        return render(request, 'invoice.html', {
+            'paid_sessions': paid,
+            'unpaid_sessions': unpaid
+        })
 
-            tempInvoice.payment_status = 'waiting'
-            tempInvoice.save()
-
-        allMatches = Match.objects.filter(
+    def handle_student_view():
+        matches = Match.objects.filter(
             request_session__student=request.user,
-            tutor_approved=True 
+            tutor_approved=True
         )
-        listOfPaidInvoice = []
-        listOfUnpaidInvoices = []
-        for match in allMatches:
-            invoices = Invoice.objects.filter(match=match)
-            if invoices.exists(): 
-                invoice = invoices.first()
-                if invoice.payment_status == 'unpaid':
-                    listOfUnpaidInvoices.append(invoice)
-                else:
-                    listOfPaidInvoice.append(invoice)
-        context = {'form' : form, 'paid_sessions': listOfPaidInvoice, 'unpaid_sessions' : listOfUnpaidInvoices}
-        return render(request, 'invoice.html', context)
+        paid, unpaid = InvoiceService.get_user_invoices(matches)
+        form = PayInvoice() if unpaid else None
 
-def generateInvoice(session_match: Match):
-    if not session_match.tutor_approved:
-        return
-    
-    selectedTutor = session_match.tutor
-    tutorSub = TutorSubject.objects.filter(
-        tutor=selectedTutor,
-        subject=session_match.request_session.subject,
-    )
-    if tutorSub.exists():
-        tempPrice = round(tutorSub[0].price * 27 * session_match.request_session.frequency, 2)
-        Invoice.objects.create(
-            match=session_match,
-            payment=tempPrice
-        )
+        if request.method == "POST":
+            if 'pdf' in request.POST:
+                match = get_object_or_404(Match, id=request.POST.get('session'))
+                invoice = Invoice.objects.get(match=match)
+                InvoiceService.generate_pdf(request.user, match, invoice)
+                return FileResponse(
+                    open("tutorials/tempInvoice.pdf", 'rb'),
+                    content_type='application/pdf',
+                    as_attachment=False
+                )
+            else:
+                form = PayInvoice(request.POST)
+                if form.is_valid():
+                    match = get_object_or_404(Match, id=form.cleaned_data['session'])
+                    invoice = Invoice.objects.get(match=match)
+                    invoice.payment_status = 'waiting'
+                    invoice.bank_transfer = form.cleaned_data['bank_transfer']
+                    invoice.save()
+
+        return render(request, 'invoice.html', {
+            'form': form,
+            'paid_sessions': paid,
+            'unpaid_sessions': unpaid
+        })
+
+    if os.path.exists("tutorials/tempInvoice.pdf"):
+        os.remove("tutorials/tempInvoice.pdf")
+
+    if request.user.is_admin:
+        return handle_admin_view()
+    elif request.user.is_tutor:
+        return handle_tutor_view()
+    else:
+        return handle_student_view()
 
 @login_prohibited
 def home(request):

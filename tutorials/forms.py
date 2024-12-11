@@ -273,3 +273,26 @@ class SelectStudentsForInvoice(forms.Form):
             id__in=student_ids,
             user_type='student'
         ).distinct()
+
+class PayInvoice(forms.Form):
+    """Form for submitting invoice payments with bank transfer details."""
+    
+    bank_transfer = forms.CharField(
+        label="Bank Transfer Number",
+        max_length=34,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'GB12BANK12345612345678'
+        })
+    )
+
+    session = forms.IntegerField(
+        widget=forms.HiddenInput()
+    )
+
+    def clean_bank_transfer(self):
+        bank_transfer = self.cleaned_data.get('bank_transfer')
+        if not bank_transfer:
+            raise ValidationError("Bank transfer number is required")
+        return bank_transfer.strip()
