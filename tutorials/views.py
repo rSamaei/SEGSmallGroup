@@ -682,6 +682,22 @@ def invoice(request):
         return handle_tutor_view()
     else:
         return handle_student_view()
+    
+def generateInvoice(session_match: Match):
+    if not session_match.tutor_approved:
+        return
+    
+    selectedTutor = session_match.tutor
+    tutorSub = TutorSubject.objects.filter(
+        tutor=selectedTutor,
+        subject=session_match.request_session.subject,
+    )
+    if tutorSub.exists():
+        tempPrice = round(tutorSub[0].price * 27 * session_match.request_session.frequency, 2)
+        Invoice.objects.create(
+            match=session_match,
+            payment=tempPrice
+        )
 
 @login_prohibited
 def home(request):
