@@ -62,8 +62,14 @@ Feature: Calendar & Any type of user - @johndoe, @janedoe, @charlie for admin, t
 \hline
 Feature: Match Requests & Admin users - @johndoe & After loggin in as the admin, you can see a card in the dashboard with the title 'Unmatched Requests', clicking on 'View all requests' will get you to the page for matching student requests with tutors who are able to teach it. (You are also able get here through the navbar) Upon reaching this page, you will see all requests, if a session was requested within two weeks of the term starting, it will be marked as late. You are able to quick match by selecting on the drop down menu, or for more details you can click on 'View Details', which will take you to the highlighted page. On the Requested Session Page you can also search for sessions by the username, subject or proficiency.\\
  \hline
+ Feature: Admin can register new admins & Only admins '@johndoe' & After logging in, admins can register new admins and add them to the database\\
+ \hline
+  Feature: Students can 'pay' for session, admins can validate payment and tutors can view paid sessions & Students can 'pay', Admins can 'accept payment'. Tutors can see payments & When a student logs in, they can view all there sessions and choose to pay. This then marks the payment as 'waiting' which the admins can view and then accept. By accepting, it will now appear as paid to the tutors.
+\hline
 Feature: Tutor subjects - Allow tutors to submit what subject they can teach as well as remove the subject and modify their proficiency.
  \hline
+Feature: Students can view there invoice as a pdf & Students & When a student logs in and goes to the invoice tab, pressing view pdf will generate a pdf with all neccessary details and allow the student to download it.
+\hline
 Feature: View all users - Admins can view/see all users in a table and choose what users to delete as well as see user information
  \hline
 Feature: search bar - All users can use the search bar at the top of the page to filter out requests and records on the database
