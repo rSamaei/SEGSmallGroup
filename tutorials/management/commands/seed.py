@@ -3,7 +3,6 @@ from datetime import date, timedelta
 
 from tutorials.models import User, Subject, RequestSession, Match, TutorSubject, RequestSessionDay, Invoice
 
-import pytz
 from faker import Faker
 from random import randint, choice, sample
 

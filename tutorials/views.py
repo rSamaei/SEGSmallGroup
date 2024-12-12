@@ -657,7 +657,7 @@ def registerNewAdmin(request):
 def invoice(request):
     def handle_pdf_generation(request, match, invoice):
         try:
-            pdf_path = InvoiceService.generate_pdf()
+            pdf_path = InvoiceService.generate_pdf(request.user, match, invoice)
             return FileResponse(
                 open(pdf_path, 'rb'),
                 content_type='application/pdf',
