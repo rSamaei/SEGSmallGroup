@@ -54,4 +54,5 @@ User @charlie is seeded with a matched session which will appear in calendar. @j
 ## Sources
 The packages used by this application are specified in `requirements.txt`
 
-*Declare are other sources here, and remove this line*
+Reza Samaei Sources Used:
+Vector image (programming.svg) on home page was from www.svgrepo.com
