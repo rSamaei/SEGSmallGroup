@@ -44,5 +44,5 @@ class PDFUser():
                 page.merge_page(overlay.pages[0])
             writer.add_page(page)
 
-        with open("tutorials/tempInvoice.pdf", "wb") as output_file:
+        with open("static/tempInvoice.pdf", "wb") as output_file:
             writer.write(output_file)

@@ -677,7 +677,7 @@ def invoice(request):
             invoice = Invoice.objects.get(match=match)
             InvoiceService.generate_pdf(request.user, match, invoice)
             return FileResponse(
-                open("tutorials/tempInvoice.pdf", 'rb'),
+                open("static/tempInvoice.pdf", 'rb'),
                 content_type='application/pdf',
                 as_attachment=False
             )
@@ -701,7 +701,7 @@ def invoice(request):
                 invoice = Invoice.objects.get(match=match)
                 InvoiceService.generate_pdf(request.user, match, invoice)
                 return FileResponse(
-                    open("tutorials/tempInvoice.pdf", 'rb'),
+                    open("static/tempInvoice.pdf", 'rb'),
                     content_type='application/pdf',
                     as_attachment=False
                 )
@@ -720,8 +720,8 @@ def invoice(request):
             'unpaid_sessions': unpaid
         })
 
-    if os.path.exists("tutorials/tempInvoice.pdf"):
-        os.remove("tutorials/tempInvoice.pdf")
+    if os.path.exists("static/tempInvoice.pdf"):
+        os.remove("static/tempInvoice.pdf")
 
     if request.user.is_admin:
         return handle_admin_view()
