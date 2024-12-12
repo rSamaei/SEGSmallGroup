@@ -23,7 +23,7 @@ from datetime import date, timedelta
 import calendar as pycalendar
 from .forms import AddTutorSubjectForm, PayInvoice
 from django.utils.timezone import now
-from django.db import IntegrityError
+from django.db import IntegrityError,transaction
 
 from django.core.paginator import Paginator
 
@@ -113,6 +113,7 @@ def view_matched_requests(request):
     # Prepare data for rendering
     matched_requests_data = [
         {
+            'id': match.id,
             'tutor': match.tutor.username,
             'student': match.request_session.student.username,
             'subject': match.request_session.subject.name,
@@ -215,123 +216,6 @@ def add_new_subject(request):
 
     context = {'form': form}
     return render(request, 'add_new_subject.html', context)
-
-@login_required
-def student_view_unmatched_requests(request):
-    """Display unmatched requests for the logged-in student."""
-    current_user = request.user
-
-    # Ensure the user is a student
-    if not current_user.is_student:
-        return redirect('dashboard')  # Redirect non-students to their dashboard
-
-    unmatched_requests = RequestSession.objects.filter(
-        student=current_user,
-        match__isnull=True
-    ).prefetch_related('days')
-
-    context = {
-        'unmatched_requests': unmatched_requests
-    }
-    return render(request, 'student_view_unmatched_requests.html', context)
-
-@login_required
-def student_submits_request(request):
-    """View for a student to submit a new session request."""
-    if not request.user.is_student:
-        return redirect('student_view_unmatched_requests')
-
-    if request.method == 'POST':
-        # Pass the logged-in student to the form
-        form = RequestSessionForm(request.POST, student=request.user)
-        if form.is_valid():
-            try:
-                # Create the RequestSession object but don't save it yet
-                new_request = form.save(commit=False)
-                # Set additional fields
-                new_request.student = request.user  # Assign the logged-in student
-                new_request.date_requested = now().date()  # Set the current date
-                new_request.save()  # Save the RequestSession
-
-                # Handle selected days for the session
-                days_selected = request.POST.getlist('days')  # Get the selected days from the form
-                for day in days_selected:
-                    RequestSessionDay.objects.create(
-                        request_session=new_request,
-                        day_of_week=day
-                    )
-
-                # Redirect to a success page or the student's unmatched requests
-                return redirect('student_view_unmatched_requests')
-            except IntegrityError:
-                # Handle duplicate request error
-                messages.error(request, "You have already submitted a request for this subject.")
-    else:
-        # Pass the logged-in student to the form for initialization
-        form = RequestSessionForm(student=request.user)
-
-    return render(request, 'student_submits_request.html', {'form': form})
-
-@login_required
-def delete_request(request, request_id):
-    """Delete a request session for the logged-in student."""
-    try:
-        unmatched_request = RequestSession.objects.get(id=request_id, student=request.user, match__isnull=True)
-        unmatched_request.delete()
-        messages.success(request, "Request deleted successfully.")
-    except RequestSession.DoesNotExist:
-        messages.error(request, "Request not found or you do not have permission to delete it.")
-    
-    return redirect('student_view_unmatched_requests')
-
-@login_required
-def modify_request(request, request_id):
-    """Allow a student to modify an existing unmatched request."""
-    try:
-        # Get the existing request
-        unmatched_request = RequestSession.objects.get(
-            id=request_id, 
-            student=request.user, 
-            match__isnull=True
-        )
-    except RequestSession.DoesNotExist:
-        messages.error(request, "Request not found or you do not have permission to modify it.")
-        return redirect('student_view_unmatched_requests')
-
-    if request.method == 'POST':
-        # Delete the old request
-        unmatched_request.delete()
-
-        # Process the submitted form as a new request
-        form = RequestSessionForm(request.POST, student=request.user)
-        if form.is_valid():
-            new_request = form.save(commit=False)
-            new_request.student = request.user
-            new_request.date_requested = now().date()
-            new_request.save()
-
-            # Handle selected days for the session
-            days_selected = request.POST.getlist('days')
-            for day in days_selected:
-                RequestSessionDay.objects.create(
-                    request_session=new_request,
-                    day_of_week=day
-                )
-
-            messages.success(request, "Request modified successfully.")
-            return redirect('student_view_unmatched_requests')
-    else:
-        # Pre-fill the form with the existing request data
-        initial_data = {
-            'subject': unmatched_request.subject,
-            'proficiency': unmatched_request.proficiency,
-            'frequency': unmatched_request.frequency,
-            'days': [day.day_of_week for day in unmatched_request.days.all()],
-        }
-        form = RequestSessionForm(initial=initial_data, student=request.user)
-
-    return render(request, 'modify_request.html', {'form': form})
-
 
 @login_required
 def view_all_users(request):
@@ -603,6 +487,34 @@ def admin_requested_session_highlighted(request, request_id):
     })
 
 @login_required
+def delete_matched_request(request, match_id):
+    """Delete a matched request and all related records."""
+    if not request.user.is_admin:
+        messages.error(request, "You do not have permission to perform this action.")
+        return redirect('view_matched_requests')
+
+    try:
+        # Wrap the deletion logic in a transaction
+        with transaction.atomic():
+            # Fetch the match and related objects
+            match = Match.objects.get(id=match_id)
+            student_request = match.request_session
+
+            # Delete related records
+            Invoice.objects.filter(match=match).delete()       # Delete invoice
+            student_request.days.all().delete()               # Delete request days
+            student_request.delete()                          # Delete the student's request
+            match.delete()                                    # Delete the match itself
+
+        messages.success(request, "Matched request deleted successfully.")
+    except Match.DoesNotExist:
+        messages.error(request, "Matched request not found.")
+    except Exception as e:
+        messages.error(request, f"An error occurred: {str(e)}")
+    
+    return redirect('view_matched_requests')
+
+@login_required
 def create_match(request, request_id):
     """Create a match between request and selected tutor."""
     if not request.user.is_admin:
@@ -625,33 +537,7 @@ def create_match(request, request_id):
     
     return redirect('admin_requested_sessions')
 
-@login_required
-def registerNewAdmin(request):
-    if not request.user.is_admin:
-        return redirect('dashboard')
-    form = None
-    if request.method == "POST":
-       form = NewAdminForm(request.POST) 
-       if form.is_valid():
-            try:
-                user = User.objects.create_user(
-                    form.cleaned_data.get('username'),
-                    first_name=form.cleaned_data.get('first_name'),
-                    last_name=form.cleaned_data.get('last_name'),
-                    email=form.cleaned_data.get('email'),
-                    password=form.cleaned_data.get('new_password'),
-                    user_type = 'admin',
-                )
-                user.save()
-            except:
-                form.add_error(None,"Unable to create")
-            else:
-                path = reverse('dashboard')
-                return HttpResponseRedirect(path)               
-    else:
-        form = NewAdminForm()
-    
-    return render(request, 'registerAdmin.html', {'form':form})
+"""INVOICES"""
 
 @login_required
 def invoice(request):
@@ -745,6 +631,8 @@ def generateInvoice(session_match: Match):
             match=session_match,
             payment=tempPrice
         )
+
+"""SIGN UP AND SIGN IN"""
 
 @login_prohibited
 def home(request):
@@ -871,7 +759,153 @@ class SignUpView(LoginProhibitedMixin, FormView):
 
     def get_success_url(self):
         return reverse(settings.REDIRECT_URL_WHEN_LOGGED_IN)
+
+@login_required
+def registerNewAdmin(request):
+    if not request.user.is_admin:
+        return redirect('dashboard')
+    form = None
+    if request.method == "POST":
+       form = NewAdminForm(request.POST) 
+       if form.is_valid():
+            try:
+                user = User.objects.create_user(
+                    form.cleaned_data.get('username'),
+                    first_name=form.cleaned_data.get('first_name'),
+                    last_name=form.cleaned_data.get('last_name'),
+                    email=form.cleaned_data.get('email'),
+                    password=form.cleaned_data.get('new_password'),
+                    user_type = 'admin',
+                )
+                user.save()
+            except:
+                form.add_error(None,"Unable to create")
+            else:
+                path = reverse('dashboard')
+                return HttpResponseRedirect(path)               
+    else:
+        form = NewAdminForm()
     
+    return render(request, 'registerAdmin.html', {'form':form}) 
+
+"""STUDENT REQUESTS"""
+
+@login_required
+def student_view_unmatched_requests(request):
+    """Display unmatched requests for the logged-in student."""
+    current_user = request.user
+
+    # Ensure the user is a student
+    if not current_user.is_student:
+        return redirect('dashboard')  # Redirect non-students to their dashboard
+
+    unmatched_requests = RequestSession.objects.filter(
+        student=current_user,
+        match__isnull=True
+    ).prefetch_related('days')
+
+    context = {
+        'unmatched_requests': unmatched_requests
+    }
+    return render(request, 'student_view_unmatched_requests.html', context)
+
+@login_required
+def student_submits_request(request):
+    """View for a student to submit a new session request."""
+    if not request.user.is_student:
+        return redirect('student_view_unmatched_requests')
+
+    if request.method == 'POST':
+        # Pass the logged-in student to the form
+        form = RequestSessionForm(request.POST, student=request.user)
+        if form.is_valid():
+            try:
+                # Create the RequestSession object but don't save it yet
+                new_request = form.save(commit=False)
+                # Set additional fields
+                new_request.student = request.user  # Assign the logged-in student
+                new_request.date_requested = now().date()  # Set the current date
+                new_request.save()  # Save the RequestSession
+
+                # Handle selected days for the session
+                days_selected = request.POST.getlist('days')  # Get the selected days from the form
+                for day in days_selected:
+                    RequestSessionDay.objects.create(
+                        request_session=new_request,
+                        day_of_week=day
+                    )
+
+                # Redirect to a success page or the student's unmatched requests
+                return redirect('student_view_unmatched_requests')
+            except IntegrityError:
+                # Handle duplicate request error
+                messages.error(request, "You have already submitted a request for this subject.")
+    else:
+        # Pass the logged-in student to the form for initialization
+        form = RequestSessionForm(student=request.user)
+
+    return render(request, 'student_submits_request.html', {'form': form})
+
+@login_required
+def delete_request(request, request_id):
+    """Delete a request session for the logged-in student."""
+    try:
+        unmatched_request = RequestSession.objects.get(id=request_id, student=request.user, match__isnull=True)
+        unmatched_request.delete()
+        messages.success(request, "Request deleted successfully.")
+    except RequestSession.DoesNotExist:
+        messages.error(request, "Request not found or you do not have permission to delete it.")
+    
+    return redirect('student_view_unmatched_requests')
+
+@login_required
+def modify_request(request, request_id):
+    """Allow a student to modify an existing unmatched request."""
+    try:
+        # Get the existing request
+        unmatched_request = RequestSession.objects.get(
+            id=request_id, 
+            student=request.user, 
+            match__isnull=True
+        )
+    except RequestSession.DoesNotExist:
+        messages.error(request, "Request not found or you do not have permission to modify it.")
+        return redirect('student_view_unmatched_requests')
+
+    if request.method == 'POST':
+        # Delete the old request
+        unmatched_request.delete()
+
+        # Process the submitted form as a new request
+        form = RequestSessionForm(request.POST, student=request.user)
+        if form.is_valid():
+            new_request = form.save(commit=False)
+            new_request.student = request.user
+            new_request.date_requested = now().date()
+            new_request.save()
+
+            # Handle selected days for the session
+            days_selected = request.POST.getlist('days')
+            for day in days_selected:
+                RequestSessionDay.objects.create(
+                    request_session=new_request,
+                    day_of_week=day
+                )
+
+            messages.success(request, "Request modified successfully.")
+            return redirect('student_view_unmatched_requests')
+    else:
+        # Pre-fill the form with the existing request data
+        initial_data = {
+            'subject': unmatched_request.subject,
+            'proficiency': unmatched_request.proficiency,
+            'frequency': unmatched_request.frequency,
+            'days': [day.day_of_week for day in unmatched_request.days.all()],
+        }
+        form = RequestSessionForm(initial=initial_data, student=request.user)
+
+    return render(request, 'modify_request.html', {'form': form})
+
 """CALENDER STUFF"""  
 
 @login_required
