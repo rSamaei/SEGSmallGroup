@@ -69,21 +69,24 @@ request_session_days_fixtures = [
     ]
 ]
 
-TutorSubject_fixtures = [
+tutor_subject_fixtures = [
     {
         'tutor': '@janedoe',
         'subject': 'Python',
-        'proficiency': 'Advanced'
+        'proficiency': 'Advanced',
+        'price': 25.00
     },
     {
         'tutor': '@janedoe',
         'subject': 'Java',
-        'proficiency': 'Intermediate'
+        'proficiency': 'Advanced',
+        'price': 30.00
     },
     {
         'tutor': '@janedoe',
         'subject': 'SQL',
-        'proficiency': 'Advanced'
+        'proficiency': 'Intermediate',
+        'price': 20.00
     }
 ]
 
@@ -123,6 +126,7 @@ class Command(BaseCommand):
         self.create_subjects()
         self.create_fixture_request_sessions()
         self.create_request_sessions()
+        self.create_fixture_tutor_subjects() 
         self.create_tutor_subjects()
         self.create_fixture_matches()
         self.create_matches()
@@ -255,6 +259,17 @@ class Command(BaseCommand):
                     defaults={'proficiency': proficiency}
                 )
         print("Tutor subjects seeded.")
+
+    def create_fixture_tutor_subjects(self):
+        for subject_data in tutor_subject_fixtures:
+            tutor = User.objects.get(username=subject_data['tutor'])
+            subject = Subject.objects.get(name=subject_data['subject'])
+            TutorSubject.objects.create(
+                tutor=tutor,
+                subject=subject,
+                proficiency=subject_data['proficiency'],
+                price=subject_data['price']
+            )
 
     def create_fixture_matches(self):
         for match in match_fixtures:
