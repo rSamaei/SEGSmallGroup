@@ -655,6 +655,18 @@ def registerNewAdmin(request):
 
 @login_required
 def invoice(request):
+    def handle_pdf_generation(request, match, invoice):
+        try:
+            pdf_path = InvoiceService.generate_pdf()
+            return FileResponse(
+                open(pdf_path, 'rb'),
+                content_type='application/pdf',
+                as_attachment=False
+            )
+        except Exception as e:
+            messages.error(request, f"Error generating PDF: {e}")
+            return redirect('invoice')
+
     def handle_admin_view():
         form = SelectTutorForInvoice(request.GET if request.method == "GET" else None)
         if request.method == "GET" and form.is_valid():
@@ -675,12 +687,8 @@ def invoice(request):
         if request.method == "POST" and 'pdf' in request.POST:
             match = get_object_or_404(Match, id=request.POST.get('session'))
             invoice = Invoice.objects.get(match=match)
-            InvoiceService.generate_pdf(request.user, match, invoice)
-            return FileResponse(
-                open("static/tempInvoice.pdf", 'rb'),
-                content_type='application/pdf',
-                as_attachment=False
-            )
+            invoice = Invoice.objects.get(match=match)
+            return handle_pdf_generation(request, match, invoice)
             
         return render(request, 'invoice.html', {
             'paid_sessions': paid,
@@ -699,12 +707,8 @@ def invoice(request):
             if 'pdf' in request.POST:
                 match = get_object_or_404(Match, id=request.POST.get('session'))
                 invoice = Invoice.objects.get(match=match)
-                InvoiceService.generate_pdf(request.user, match, invoice)
-                return FileResponse(
-                    open("static/tempInvoice.pdf", 'rb'),
-                    content_type='application/pdf',
-                    as_attachment=False
-                )
+                invoice = Invoice.objects.get(match=match)
+                return handle_pdf_generation(request, match, invoice)
             else:
                 form = PayInvoice(request.POST)
                 if form.is_valid():
