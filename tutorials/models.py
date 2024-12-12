@@ -177,7 +177,7 @@ class TutorSubject(models.Model):
 
 class Frequency:
     """Utility class to handle frequency conversions."""
-    
+
     FREQUENCY_CHOICES = {
         0.5: 'Fortnightly',
         1.0: 'Weekly',
@@ -193,6 +193,8 @@ class Frequency:
     @classmethod
     def to_numeric(cls, label):
         """Convert string representation of frequency to its numeric value."""
+        if not isinstance(label, str):  # Ensure label is a string
+            return None
         for numeric, string in cls.FREQUENCY_CHOICES.items():
             if string.lower() == label.lower():
                 return numeric
