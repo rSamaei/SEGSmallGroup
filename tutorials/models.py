@@ -149,6 +149,7 @@ class Invoice(models.Model):
     payment = models.DecimalField(max_digits=10, decimal_places=2)
     match = models.ForeignKey(Match, on_delete=models.CASCADE, unique=True)
     payment_status = models.CharField(max_length=10, choices=USER_PAYMENT_CHOICES, default='unpaid')
+    bank_transfer = models.CharField(max_length=20, blank=True, null=True)
     class Meta:
         abstract = False
 

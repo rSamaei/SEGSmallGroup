@@ -16,8 +16,8 @@
   min-height: 500px;
   display: flex;
   align-items: center;
-  margin-top: -1rem; /* Compensate for navbar margin */
-  padding: 3rem 0;   /* Add padding here instead */
+  margin-top: -1rem;
+  padding: 3rem 0; 
 }
 
 .card {
@@ -300,7 +300,6 @@ td {
   scrollbar-color: #888 #ccc; /* For Firefox */
 }
 
-/* For Webkit browsers like Chrome, Safari, Edge */
 .scrollable-container::-webkit-scrollbar {
   width: 8px;
 }

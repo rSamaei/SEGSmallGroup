@@ -3,6 +3,17 @@
 {% block content %}
 <div class="container">
     <h1>Pending Match Approvals</h1>
+
+    <!-- Search Bar -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <form method="get" action="{% url 'pending_approvals' %}">
+                <input type="text" name="search" class="form-control" value="{{ search_query }}" placeholder="Search...">
+            </form>
+        </div>
+    </div>
+
+    <!-- Pending Matches Table -->
     <table class="table table-bordered">
         <thead>
             <tr>
@@ -37,6 +48,10 @@
                     <form method="post" action="{% url 'approve_match' match.id %}">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-success">Approve</button>
+                    </form>
+                    <form method="post" action="{% url 'reject_match' match.id %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to reject this match?');">Reject</button>
                     </form>
                 </td>
                 {% else %}

@@ -30,6 +30,7 @@
         {% if user.is_student %}
           <li class="nav-item">
             <!-- Student links -->
+            <a class="nav-link px-3" href="{% url 'student_submits_request' %}">Make Request</a>
           </li>
         {% endif %}
       </ul>

@@ -4,25 +4,20 @@
   <h2>{{ month_name }} {{ year }}</h2>
   
   {% if user.is_admin %}
-  <div class="mb-3">
-    <form method="get">
-        <select name="user" class="form-select mb-3" onchange="this.form.submit()">
-            <option value="">Select a user...</option>
-            {% for u in users %}
-                <option value="{{ u.username }}" {% if selected_user == u.username %}selected{% endif %}>
-                    {{ u.username }}{% if u.user_type != 'admin' %} ({{ u.user_type }}){% endif %}
-                </option>
-            {% endfor %}
-        </select>
-    </form>
+  <!-- Search Bar -->
+  <div class="row mb-4">
+    <div class="col-12">
+        <form method="get" action="{% url 'calendar_view' %}">
+            <input type="text" name="search" class="form-control" value="{{ search_query }}" placeholder="Search for sessions...">
+        </form>
+    </div>
   </div>
   {% endif %}
 
   <div class="d-flex justify-content-between mb-3">
-    <a href="?month={{ prev_month }}&year={{ prev_year }}{% if selected_user %}&user={{ selected_user }}{% endif %}" 
+    <a href="?month={{ prev_month }}&year={{ prev_year }}{% if search_query %}&search={{ search_query }}{% endif %}" 
        class="btn btn-primary">Previous</a>
-    <h4 class="mb-0 align-self-center">{{ current_month|date:"F Y" }}</h4>
-    <a href="?month={{ next_month }}&year={{ next_year }}{% if selected_user %}&user={{ selected_user }}{% endif %}" 
+    <a href="?month={{ next_month }}&year={{ next_year }}{% if search_query %}&search={{ search_query }}{% endif %}" 
        class="btn btn-primary">Next</a>
   </div>
   <table class="table table-bordered">

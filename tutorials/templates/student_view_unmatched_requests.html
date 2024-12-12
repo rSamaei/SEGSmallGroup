@@ -32,11 +32,12 @@
                 </td>
                 <td>{{ request.date_requested }}</td>
                 <td>
-                  <form method="post" action="{% url 'delete_request' request.id %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">Delete</button>
+                  <form method="post" action="{% url 'delete_request' request.id %}" style="display:inline;">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-danger">Delete</button>
                   </form>
-                </td>
+                  <a href="{% url 'modify_request' request.id %}" class="btn btn-warning">Modify</a>
+                </td>      
               </tr>
             {% endfor %}
           </tbody>

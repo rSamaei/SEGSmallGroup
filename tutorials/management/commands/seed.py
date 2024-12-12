@@ -9,17 +9,102 @@ from random import randint, choice, sample
 
 DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 
-# addded user_type to these
 user_fixtures = [
     {'username': '@johndoe', 'email': 'john.doe@example.org', 'first_name': 'John', 'last_name': 'Doe', 'user_type': 'admin'},
     {'username': '@janedoe', 'email': 'jane.doe@example.org', 'first_name': 'Jane', 'last_name': 'Doe', 'user_type': 'tutor'},
     {'username': '@charlie', 'email': 'charlie.johnson@example.org', 'first_name': 'Charlie', 'last_name': 'Johnson', 'user_type': 'student'},
 ]
 
-# for subject data
 subject_names = [
     'Discrete Maths', 'Machine Learning', 'C++', 'Python', 'Java', 
     'SQL', 'Neural Networks', 'Assembly', 'Rust', 'C'
+]
+
+request_session_fixtures = [
+    {
+        'student': '@charlie',
+        'subject': 'Python',
+        'proficiency': 'Beginner',
+        'frequency': 1.0,
+        'date_requested': date(2024, 8, 20)
+    },
+    {
+        'student': '@charlie',
+        'subject': 'Java',
+        'proficiency': 'Intermediate',
+        'frequency': 2.0,
+        'date_requested': date(2024, 10, 10)
+    },
+    {
+        'student': '@charlie',
+        'subject': 'SQL',
+        'proficiency': 'Advanced',
+        'frequency': 0.5,
+        'date_requested': date(2025, 1, 7)
+    }
+]
+
+request_session_days_fixtures = [
+    [
+        {
+            'request_session': {
+                'student': '@charlie',
+                'subject': 'Python'
+            },
+            'day_of_week': 'Monday'
+        },
+        {
+            'request_session': {
+                'student': '@charlie',
+                'subject': 'Java'
+            },
+            'day_of_week': 'Wednesday, Thursday'
+        },
+        {
+            'request_session': {
+                'student': '@charlie',
+                'subject': 'SQL'
+            },
+            'day_of_week': 'Friday'
+        }
+    ]
+]
+
+TutorSubject_fixtures = [
+    {
+        'tutor': '@janedoe',
+        'subject': 'Python',
+        'proficiency': 'Advanced'
+    },
+    {
+        'tutor': '@janedoe',
+        'subject': 'Java',
+        'proficiency': 'Intermediate'
+    },
+    {
+        'tutor': '@janedoe',
+        'subject': 'SQL',
+        'proficiency': 'Advanced'
+    }
+]
+
+match_fixtures = [
+    {
+        'tutor': '@janedoe',
+        'request_session': {
+            'student': '@charlie',
+            'subject': 'Python'
+        },
+        'tutor_approved': True
+    },
+    {
+        'tutor': '@janedoe',
+        'request_session': {
+            'student': '@charlie',
+            'subject': 'Java'
+        },
+        'tutor_approved': False
+    }
 ]
 
 class Command(BaseCommand):
@@ -37,9 +122,12 @@ class Command(BaseCommand):
         self.create_users()
         self.users = User.objects.all()
         self.create_subjects()
+        self.create_fixture_request_sessions()
         self.create_request_sessions()
         self.create_tutor_subjects()
+        self.create_fixture_matches()
         self.create_matches()
+        self.create_invoices()
 
     def create_users(self):
         self.generate_user_fixtures()
@@ -86,6 +174,31 @@ class Command(BaseCommand):
             Subject.objects.get_or_create(name=name)
         print("Subjects seeded.")
 
+    def create_fixture_request_sessions(self):
+        for req in request_session_fixtures:
+            student = User.objects.get(username=req['student'])
+            subject = Subject.objects.get(name=req['subject'])
+            request_session = RequestSession.objects.create(
+                student=student,
+                subject=subject,
+                proficiency=req['proficiency'],
+                frequency=req['frequency'],
+                date_requested=req['date_requested']
+            )
+            if req['frequency'] == 0.5 or req['frequency'] == 1.0:
+                day = choice(DAYS_OF_WEEK)
+                RequestSessionDay.objects.create(
+                    request_session=request_session,
+                    day_of_week=day
+                )
+            elif req['frequency'] == 2.0:
+                days = sample(DAYS_OF_WEEK, k=2)
+                for day in days:
+                    RequestSessionDay.objects.create(
+                        request_session=request_session,
+                        day_of_week=day
+                    )
+
     def create_request_sessions(self):
         students = User.objects.filter(user_type='student')
         subjects = Subject.objects.all()
@@ -100,30 +213,32 @@ class Command(BaseCommand):
                 proficiency = choice(['Beginner', 'Intermediate', 'Advanced'])
                 frequency = choice([0.5, 1.0, 2.0])
                 session_date = choice(possible_dates)  # Randomly pick a date
-                # if the student requesting that subject hasn't already been generated create it 
-                request_session, created = RequestSession.objects.get_or_create(
-                    student=student,
-                    subject=subject,
-                    defaults={
-                        'proficiency': proficiency, 
-                        'frequency': frequency,
-                        'date_requested': session_date  # Add the date
-                    }
-                )
-                if created:
-                    if frequency == 0.5 or frequency == 1.0:  # Fortnightly / Weekly
-                        day = choice(DAYS_OF_WEEK)
-                        RequestSessionDay.objects.create(
-                            request_session=request_session,
-                            day_of_week=day
-                        )
-                    elif frequency == 2.0:  # Biweekly
-                        days = sample(DAYS_OF_WEEK, k=2)  # Select two different days
-                        for day in days:
+                try:
+                    request_session, created = RequestSession.objects.get_or_create(
+                        student=student,
+                        subject=subject,
+                        defaults={
+                            'proficiency': proficiency, 
+                            'frequency': frequency,
+                            'date_requested': session_date  # Add the date
+                        }
+                    )
+                    if created:
+                        if frequency == 0.5 or frequency == 1.0:  # Fortnightly / Weekly
+                            day = choice(DAYS_OF_WEEK)
                             RequestSessionDay.objects.create(
                                 request_session=request_session,
                                 day_of_week=day
                             )
+                        elif frequency == 2.0:  # Biweekly
+                            days = sample(DAYS_OF_WEEK, k=2)  # Select two different days
+                            for day in days:
+                                RequestSessionDay.objects.create(
+                                    request_session=request_session,
+                                    day_of_week=day
+                                )
+                except Exception as e:
+                    print(f"Error creating request session: {e}")
         print("Request sessions seeded.")
 
     def create_tutor_subjects(self):
@@ -142,53 +257,65 @@ class Command(BaseCommand):
                 )
         print("Tutor subjects seeded.")
 
+    def create_fixture_matches(self):
+        for match in match_fixtures:
+            tutor = User.objects.get(username=match['tutor'])
+            request = RequestSession.objects.get(
+                student__username=match['request_session']['student'],
+                subject__name=match['request_session']['subject']
+            )
+            Match.objects.create(
+                tutor=tutor,
+                request_session=request,
+                tutor_approved=match['tutor_approved']
+            )
+
     def create_matches(self):
         sessions = list(RequestSession.objects.all())
         half_sessions = len(sessions) // 2
         selected_sessions = self.faker.random_elements(elements=sessions, length=half_sessions, unique=True)
 
         for session in selected_sessions:
-            tutors = User.objects.filter(user_type='tutor')     # get all tutors by filtering users
-            tutors_for_subject = tutors.filter(
-                tutor_subjects__subject=session.subject # filter tutors if the subject of the requested session appears in tutor subjects table indicating the tutor can teach that session
-            )
-
-            # if there are tutors available for this subject, match one to the session
-            if tutors_for_subject.exists():
-                tutor = choice(tutors_for_subject)  # randomly choose a tutor
-                tempMatch, created = Match.objects.get_or_create(
-                    request_session=session,
-                    tutor=tutor,
-                    defaults={'tutor_approved': choice([True, False])}  # Randomly set tutor_approved
+            try:
+                tutors = User.objects.filter(user_type='tutor')  # get all tutors by filtering users
+                tutors_for_subject = tutors.filter(
+                    tutor_subjects__subject=session.subject  # filter tutors if the subject of the requested session appears in tutor subjects table indicating the tutor can teach that session
                 )
-                if created:
-                    generateInvoice(tempMatch)  # Generate an invoice for the created match
-            else:
-                print(f"No tutor available for subject: {session.subject.name}")
+
+                # if there are tutors available for this subject, match one to the session
+                if tutors_for_subject.exists():
+                    tutor = choice(tutors_for_subject)  # randomly choose a tutor
+                    Match.objects.get_or_create(
+                        request_session=session,
+                        tutor=tutor,
+                        defaults={'tutor_approved': choice([True, False])}  # Randomly set tutor_approved
+                    )
+                else:
+                    print(f"No tutor available for subject: {session.subject.name}")
+            except Exception as e:
+                print(f"Error creating match for session {session.id}: {e}")
 
         print("Matches seeded.")
-        print("Invoices seeded.")
 
-def generateInvoice(session_match: Match):
-    # Only proceed if the tutor has approved the match
-    if session_match.tutor_approved:
-        selectedTutor = session_match.tutor
+    def create_invoices(self):
+        fake = Faker()
+        matches = Match.objects.filter(tutor_approved=True)
         
-        # Get the TutorSubject related to this tutor and the subject of the request session
-        tutorSub = TutorSubject.objects.filter(
-            tutor=selectedTutor,
-            subject=session_match.request_session.subject,
-        ).first()  # Use .first() to get the first matching entry (or None if not found)
-
-        if tutorSub:
-            # Calculate the payment amount based on the tutor's price, frequency, and fixed multiplier
-            tempPrice = round(tutorSub.price * 27 * session_match.request_session.frequency, 2)
+        for session_match in matches:
+            # Calculate random price between 20 and 100
+            tempPrice = randint(20, 100)
+            # Randomly choose payment status
+            payment_status = choice(['paid', 'waiting', 'unpaid'])
             
-            # Create the invoice for this match
+            # Create invoice with conditional bank transfer
             tempInvoice = Invoice.objects.create(
                 match=session_match,
-                payment=tempPrice
+                payment=tempPrice,
+                payment_status=payment_status,
+                bank_transfer=fake.iban() if payment_status == 'paid' else None
             )
+            
+        print("Invoices seeded.")
             
 
 def create_username(first_name, last_name):

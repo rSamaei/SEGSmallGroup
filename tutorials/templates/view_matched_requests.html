@@ -3,6 +3,12 @@
 {% block content %}
   <div class="container">
     <h2>Matched Requests</h2>
+
+    <!-- Search Bar -->
+    <form method="get" action="{% url 'view_matched_requests' %}" class="mb-3">
+      <input type="text" name="search" class="form-control" value="{{ search_query }}" placeholder="Search matched requests...">
+    </form>
+
     <table class="table table-bordered">
       <thead>
         <tr>
@@ -32,7 +38,7 @@
           </tr>
         {% empty %}
           <tr>
-            <td colspan="6">No matched requests found.</td>
+            <td colspan="7" class="text-center">No matched requests found.</td>
           </tr>
         {% endfor %}
       </tbody>

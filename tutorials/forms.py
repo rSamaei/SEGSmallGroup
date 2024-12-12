@@ -186,17 +186,6 @@ class SignUpForm(NewPasswordMixin, forms.ModelForm):
 class TutorMatchForm(forms.Form):
     """
     A form for matching tutors with request sessions based on subject and proficiency.
-    This form provides a single ModelChoiceField for selecting a tutor from a filtered
-    queryset of users who:
-        1. Have the user type 'tutor'
-        2. Match the subject of the request session
-        3. Match the proficiency level of the request session
-    Attributes:
-        tutor (ModelChoiceField): A dropdown field for selecting a tutor with 
-            Bootstrap styling.
-    Args:
-        request_session: The session request object containing subject and 
-            proficiency requirements.
     """
     tutor = forms.ModelChoiceField(
         queryset=None,
@@ -205,18 +194,23 @@ class TutorMatchForm(forms.Form):
 
     def __init__(self, request_session: RequestSession, *args, **kwargs) -> None:
         """Initialize form with filtered tutor queryset based on request requirements."""
-        # Call parent class initialization
         super().__init__(*args, **kwargs)
-        
-        # Filter tutors based on:
-        # 1. Must be a tutor type user
-        # 2. Must teach the requested subject
-        # 3. Must have required proficiency level
+
+        # Define proficiency levels in order of hierarchy
+        proficiency_hierarchy = {'beginner': 1,'intermediate': 2,'advanced': 3}
+
+        # Get the requested proficiency level and normalize it to lowercase
+        requested_proficiency = request_session.proficiency.lower()
+
         self.fields['tutor'].queryset = User.objects.filter(
-            user_type='tutor',  # Only get tutor users
-            tutor_subjects__subject=request_session.subject,  # Match subject
-            tutor_subjects__proficiency=request_session.proficiency  # Match proficiency
-        ).distinct()  # Remove duplicates if tutor teaches multiple subjects
+            user_type='tutor',
+            tutor_subjects__subject=request_session.subject,
+            tutor_subjects__proficiency__in=[
+                prof.capitalize() for prof, level in proficiency_hierarchy.items()
+                if level >= proficiency_hierarchy[requested_proficiency]
+            ]
+        ).distinct()
+
 
     def save(self, request_session: RequestSession) -> Match:
         """Save the match to the database."""
@@ -273,3 +267,26 @@ class SelectStudentsForInvoice(forms.Form):
             id__in=student_ids,
             user_type='student'
         ).distinct()
+
+class PayInvoice(forms.Form):
+    """Form for submitting invoice payments with bank transfer details."""
+    
+    bank_transfer = forms.CharField(
+        label="Bank Transfer Number",
+        max_length=34,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'GB12BANK12345612345678'
+        })
+    )
+
+    session = forms.IntegerField(
+        widget=forms.HiddenInput()
+    )
+
+    def clean_bank_transfer(self):
+        bank_transfer = self.cleaned_data.get('bank_transfer')
+        if not bank_transfer:
+            raise ValidationError("Bank transfer number is required")
+        return bank_transfer.strip()
