@@ -34,7 +34,7 @@ class PDFUser():
     
 
     def generatePDF(student, tutor, price1, price2, price3, subject, freq, prof, bank_transfer):
-        path = "tutorials/BaseInvoice.pdf"
+        path = "static/BaseInvoice.pdf"
         input_pdf = PdfReader(path)
         writer = PdfWriter()
         overlay = PDFUser.createOverlay(student, tutor, str(price1), str(price2), str(price3), 
