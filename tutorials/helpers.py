@@ -39,9 +39,12 @@ class InvoiceService:
         )
         
         student_name = f"{user.first_name} {user.last_name}"
-        PDFUser.generatePDF(
-            student_name, tutor_name, tutor_subject.price,
-            request_session.frequency, invoice.payment,
+        return PDFUser.generatePDF(
+            student_name, 
+            tutor_name, 
+            tutor_subject.price,
+            request_session.frequency, 
+            invoice.payment,
             request_session.subject.name,
             request_session.get_frequency_display(),
             request_session.proficiency,

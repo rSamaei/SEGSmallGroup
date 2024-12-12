@@ -1,6 +1,8 @@
 from PyPDF2 import PdfReader, PdfWriter
 from io import BytesIO
 from reportlab.pdfgen import canvas
+import os
+import uuid
 
 class PDFUser():
     
@@ -34,15 +36,30 @@ class PDFUser():
     
 
     def generatePDF(student, tutor, price1, price2, price3, subject, freq, prof, bank_transfer):
-        path = "tutorials/BaseInvoice.pdf"
-        input_pdf = PdfReader(path)
-        writer = PdfWriter()
-        overlay = PDFUser.createOverlay(student, tutor, str(price1), str(price2), str(price3), 
-                                  subject, freq, prof, bank_transfer)
-        for page_number, page in enumerate(input_pdf.pages):
-            if page_number == 0:
-                page.merge_page(overlay.pages[0])
-            writer.add_page(page)
+        BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  
+        path = os.path.join(BASE_DIR, "static/BaseInvoice.pdf")
+        unique_filename = f"tempInvoice_{uuid.uuid4().hex}.pdf"
+        temp_path = os.path.join(BASE_DIR, "media", unique_filename)
 
-        with open("tutorials/tempInvoice.pdf", "wb") as output_file:
-            writer.write(output_file)
+        try:
+            input_pdf = PdfReader(path)
+            writer = PdfWriter()
+
+            overlay = PDFUser.createOverlay(student, tutor, str(price1), str(price2), str(price3),
+                                            subject, freq, prof, bank_transfer)
+
+            for page_number, page in enumerate(input_pdf.pages):
+                if page_number == 0:
+                    page.merge_page(overlay.pages[0])
+                writer.add_page(page)
+
+            # Write the output to a temporary file
+            with open(temp_path, "wb") as output_file:
+                writer.write(output_file)
+
+            return temp_path
+
+        except FileNotFoundError:
+            raise Exception(f"Base invoice template not found at {path}")
+        except Exception as e:
+            raise Exception(f"An error occurred while generating the PDF: {e}")
