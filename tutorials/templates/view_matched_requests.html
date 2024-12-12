@@ -9,6 +9,7 @@
       <input type="text" name="search" class="form-control" value="{{ search_query }}" placeholder="Search matched requests...">
     </form>
 
+    <!-- Matched Requests Table -->
     <table class="table table-bordered">
       <thead>
         <tr>
@@ -19,6 +20,9 @@
           <th scope="col">Date Requested</th>
           <th scope="col">Days</th>
           <th scope="col">Frequency</th>
+          {% if request.user.is_admin %}
+            <th scope="col">Action</th>
+          {% endif %}
         </tr>
       </thead>
       <tbody>
@@ -35,10 +39,18 @@
               {% endfor %}
             </td>
             <td>{{ match.frequency }}</td>
+            {% if request.user.is_admin %}
+              <td>
+                <form method="post" action="{% url 'delete_matched_request' match.id %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this match?');">Delete</button>
+                </form>
+              </td>
+            {% endif %}
           </tr>
         {% empty %}
           <tr>
-            <td colspan="7" class="text-center">No matched requests found.</td>
+            <td colspan="{% if request.user.is_admin %}8{% else %}7{% endif %}" class="text-center">No matched requests found.</td>
           </tr>
         {% endfor %}
       </tbody>
