@@ -3,6 +3,7 @@
 %%% pdflatex self-assessment.tex in a UNIX CLI.
 \documentclass[11pt,a4paper]{article}
 \usepackage[margin=2.5cm]{geometry}
+\usepackage{longtable}
 \renewcommand{\familydefault}{\sfdefault}
 
 \begin{document}
@@ -56,7 +57,12 @@ The objective of our system was to create a website where students and tutors co
 \section*{Features}
 Identify the main features of your team's application.  Identify what type of user can access this (or their username), and any other constraints.  If necessary, describe how/where the feature should be accessed.  Small or very obvious features need not be included.  The examiners will be using this to assess and find the functionality available to users of the application.  
 
-\begin{tabular}{|p{30mm}|p{25mm}|p{50mm}|}
+\begin{longtable}{|p{30mm}|p{25mm}|p{50mm}|}
+    \hline
+    Feature & Users & Description \\
+    \hline
+    \endfirsthead
+
 \hline
 Feature: Calendar & Any type of user - @johndoe, @janedoe, @charlie for admin, tutor, student respectively & After logging in, students and tutors can see a mini Calendar on their dashboard, then clicking on the bottom beneath it will redirect you to the full calendar. All users also have a direct link to the calendar on the navbar. Only admins on the calendar page have access to the search bar, where you can search for users, subjects or proficiencies. \\
 \hline
@@ -86,7 +92,7 @@ Feature: Pending requests & All users & All users can see their pending requests
  \hline
   & & \\
  \hline
-\end{tabular}
+\end{longtable}
 %%% Add rows as needed.
 
 \end{document}
