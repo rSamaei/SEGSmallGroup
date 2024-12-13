@@ -13,7 +13,7 @@ The project is called `code404`.  It currently consists of a single app `tutoria
 Details on how to see and test functinality is provided at the bottom of this README file
 
 ## Deployed version of the application
-The deployed version of the application can be found at [*enter url here*](*enter_url_here*).
+The deployed version of the application can be found at [*enter url here*]([*enter_url_here*](https://rsamaei.pythonanywhere.com/)).
 
 ## Installation instructions
 To install the software and use it in your local development environment, you must first set up and activate a local development environment.  From the root of the project:
@@ -54,4 +54,4 @@ User @charlie is seeded with a matched session which will appear in calendar. @j
 ## Sources
 The packages used by this application are specified in `requirements.txt`
 
-*Declare are other sources here, and remove this line*
+
