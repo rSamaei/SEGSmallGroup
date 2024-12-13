@@ -1,8 +1,7 @@
 """Unit tests of the tutor match form."""
-from django import forms
 from django.test import TestCase
 from tutorials.forms import TutorMatchForm
-from tutorials.models import User, RequestSession, Subject, TutorSubject
+from tutorials.models import User, RequestSession, Subject, TutorSubject, Match
 
 class TutorMatchFormTestCase(TestCase):
     """Unit tests of the tutor match form."""
@@ -19,7 +18,8 @@ class TutorMatchFormTestCase(TestCase):
         self.student = User.objects.filter(user_type='student').first()
         self.tutor = User.objects.filter(user_type='tutor').first()
         self.request = RequestSession.objects.first()
-        # create tutor subject relationship
+
+        # Create tutor subject relationship
         self.tutor_subject = TutorSubject.objects.create(
             tutor=self.tutor,
             subject=self.subject,
@@ -58,3 +58,19 @@ class TutorMatchFormTestCase(TestCase):
         invalid_id = 99999
         form = TutorMatchForm(self.request, data={'tutor': invalid_id})
         self.assertFalse(form.is_valid())
+
+    def test_form_saves_match(self):
+        """Test form saves the correct match."""
+        form = TutorMatchForm(self.request, data={'tutor': self.tutor.id})
+        self.assertTrue(form.is_valid())
+        match = form.save(self.request)
+        self.assertIsInstance(match, Match)
+        self.assertEqual(match.tutor, self.tutor)
+        self.assertEqual(match.request_session, self.request)
+
+    def test_form_saves_match_with_multiple_days(self):
+        """Test form saves match correctly with multiple session days."""
+        form = TutorMatchForm(self.request, data={'tutor': self.tutor.id})
+        self.assertTrue(form.is_valid())
+        match = form.save(self.request)
+        self.assertEqual(match.request_session.days.count(), self.request.days.count())

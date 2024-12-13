@@ -2,6 +2,7 @@
 from django import forms
 from django.contrib.auth import authenticate
 from django.core.validators import RegexValidator
+from django.utils import timezone
 
 from django.forms import Select
 from .models import User, Match, RequestSession, RequestSessionDay, TutorSubject, Subject, Frequency
@@ -35,15 +36,9 @@ class UpdateProficiencyForm(forms.ModelForm):
 class RequestSessionForm(forms.ModelForm):
     """Form for students to create a new session request."""
 
-    """We may need this later so commenting it out"""
     days = forms.MultipleChoiceField(
-        choices=[
-            ('Monday', 'Monday'),
-            ('Tuesday', 'Tuesday'),
-            ('Wednesday', 'Wednesday'),
-            ('Thursday', 'Thursday'),
-            ('Friday', 'Friday'),
-        ],
+        choices=[('Monday', 'Monday'), ('Tuesday', 'Tuesday'), ('Wednesday', 'Wednesday'), 
+                 ('Thursday', 'Thursday'), ('Friday', 'Friday')],
         widget=forms.CheckboxSelectMultiple
     )
 
@@ -63,7 +58,15 @@ class RequestSessionForm(forms.ModelForm):
         cleaned_data = super().clean()
         subject = cleaned_data.get('subject')
 
-        # Use the student passed during form instantiation
+        # Ensure subject is a valid Subject instance
+        if isinstance(subject, str):
+            subject = Subject.objects.filter(name=subject).first()
+            if not subject:
+                raise ValidationError(f"Subject '{subject}' does not exist.")
+        elif not isinstance(subject, Subject):
+            raise ValidationError("Invalid subject selected.")
+
+        # Ensure a student is provided
         if not self.student:
             raise ValidationError("Student information is missing.")
 
@@ -73,6 +76,14 @@ class RequestSessionForm(forms.ModelForm):
 
         return cleaned_data
     
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if not instance.date_requested:
+            instance.date_requested = timezone.now()  # Automatically set to current date/time
+        if commit:
+            instance.save()
+        return instance
+
     def clean_frequency(self):
         frequency = self.cleaned_data.get('frequency')
 
@@ -80,6 +91,7 @@ class RequestSessionForm(forms.ModelForm):
             raise ValidationError("You must select a frequency.")
         
         return frequency
+
 
 class LogInForm(forms.Form):
     """Form enabling registered users to log in."""
@@ -228,6 +240,12 @@ class TutorMatchForm(forms.Form):
             )
         
         return match
+    
+    def clean_tutor(self):
+        tutor = self.cleaned_data.get('tutor')
+        if not tutor:
+            raise ValidationError("A valid tutor must be selected.")
+        return tutor
       
 class NewAdminForm(NewPasswordMixin, forms.ModelForm):
     """Form to create new admin."""
@@ -253,10 +271,12 @@ class SelectTutorForInvoice(forms.Form):
         self.fields['tutor'].queryset = User.objects.filter(id__in=matched_user_ids).distinct()
 
 class SelectStudentsForInvoice(forms.Form):
-    student = forms.ModelChoiceField(queryset=None, empty_label="Unselected",widget=forms.Select(attrs={'class': 'form-select mb-3'}))
+    student = forms.ModelChoiceField(queryset=None, empty_label="Unselected", widget=forms.Select(attrs={'class': 'form-select mb-3'}))
 
-    def __init__(self , selfTutor:User, *args, **kwargs):
+    def __init__(self, selfTutor: User, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # Get all matches where the tutor is the current tutor (selfTutor)
         matches = Match.objects.filter(tutor=selfTutor)
 
         # Get the list of student IDs from matched sessions
