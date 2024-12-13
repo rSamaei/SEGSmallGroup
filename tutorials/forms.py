@@ -51,7 +51,7 @@ class RequestSessionForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        self.student = kwargs.pop('student', None)  # Accept the logged-in student
+        self.student = kwargs.pop('student', None)
         super().__init__(*args, **kwargs)
 
     def clean(self):
@@ -79,7 +79,7 @@ class RequestSessionForm(forms.ModelForm):
     def save(self, commit=True):
         instance = super().save(commit=False)
         if not instance.date_requested:
-            instance.date_requested = timezone.now()  # Automatically set to current date/time
+            instance.date_requested = timezone.now()  # set to current date/time 
         if commit:
             instance.save()
         return instance
