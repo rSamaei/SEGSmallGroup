@@ -7,29 +7,28 @@
 
 \begin{document}
 \title{Small Group Project Self-Assessment}
-\author{}
-\date{}
+\author{Mohammed Shafayat Hossain, Muhammad Mushtaq Ahmad, Endrin Hoti, Adnan Hussain, Reza Samaei}
+\date{13/12/2024}
 \maketitle
 
 %%% Lines starting with %%% are comment lines.
 %%% Fill out the form by removing all comment lines and replacing them by the suggested content.
 
-\noindent\textbf{Team name}: %%% Insert team name here
-
-\noindent\textbf{URL of the deployed application}: %%% Insert URL of the deployed application here
+\noindent\textbf{Team name}: Team Cobra
+\noindent\textbf{URL of the deployed application}: https://rsamaei.pythonanywhere.com/
 
 \noindent\textbf{Team members}:
 \begin{itemize}
 \setlength\itemsep{0em}
-\item %%% Name of member 1
-\item %%% Name of member 2
-\item %%% Name of member 3
-\item %%% Name of member 4
-\item %%% Name of member 5
+\item Mohammed Shafayat Hossain
+\item Muhammad Mushtaq Ahmad
+\item Endrin Hoti
+\item Adnan Hussain
+\item Reza Samaei
 \end{itemize}
 
 \noindent\textbf{If the team agrees on an effective team size, specify it here.  Otherwise, state that the team does not agree.} 
-%%% Insert effective team size or “did not agree” here.
+Team size of 5
 
 \section*{Submission checklist}
 \begin{tabular}{|p{15mm}|p{13cm}|}
@@ -52,29 +51,36 @@ Check & Task \\
 Briefly outline the business objective of the system you have built.  Aim to identify what the system you developed aims to achieve (do not regurgitate the overall assignment).  This section should consist of a single paragraph.  Aim for less than 100 words.
 
 %%% Insert your objective description here.
+The objective of our system was to create a website where students and tutors could easily request and accept tutoring sessions. Our system hopes to achieve the ability to allow tutors to choose there proficient subjects and allow to submit requests. The admins would then be able to link tutors and students together if they have matching specifications. We also want to allow students to let the admins and tutors know they've paid as well as view there invoice. We wanted to include a clean and simple UI where admins can match tutors with students as well as allow them to view all scheduled sessions.
 
 \section*{Features}
 Identify the main features of your team's application.  Identify what type of user can access this (or their username), and any other constraints.  If necessary, describe how/where the feature should be accessed.  Small or very obvious features need not be included.  The examiners will be using this to assess and find the functionality available to users of the application.  
 
 \begin{tabular}{|p{50mm}|p{40mm}|p{50mm}|}
 \hline
-Feature & Required user role and other constraints & How should the feature be accessed\\
+Feature: Calendar & Any type of user - @johndoe, @janedoe, @charlie for admin, tutor, student respectively & After logging in, students and tutors can see a mini Calendar on their dashboard, then clicking on the bottom beneath it will redirect you to the full calendar. All users also have a direct link to the calendar on the navbar. Only admins on the calendar page have access to the search bar, where you can search for users, subjects or proficiencies. \\
 \hline
- & & \\
+Feature: Match Requests & Admin users - @johndoe & After loggin in as the admin, you can see a card in the dashboard with the title 'Unmatched Requests', clicking on 'View all requests' will get you to the page for matching student requests with tutors who are able to teach it. (You are also able get here through the navbar) Upon reaching this page, you will see all requests, if a session was requested within two weeks of the term starting, it will be marked as late. You are able to quick match by selecting on the drop down menu, or for more details you can click on 'View Details', which will take you to the highlighted page. On the Requested Session Page you can also search for sessions by the username, subject or proficiency.\\
  \hline
-  & & \\
+Feature: Admin can register new admins & Only admins '@johndoe' & After logging in, admins can register new admins and add them to the database\\
  \hline
-  & & \\
+Feature: Students can 'pay' for session, admins can validate payment and tutors can view paid sessions & Students can 'pay', Admins can 'accept payment'. Tutors can see payments & When a student logs in, they can view all there sessions and choose to pay. This then marks the payment as 'waiting' which the admins can view and then accept. By accepting, it will now appear as paid to the tutors.
+\hline
+Feature: Tutor subjects - Allow tutors to submit what subject they can teach as well as remove the subject and modify their proficiency.
  \hline
-  & & \\
+Feature: Students can view there invoice as a pdf & Students & When a student logs in and goes to the invoice tab, pressing view pdf will generate a pdf with all neccessary details and allow the student to download it.
+\hline
+Feature: View all users - Admins can view/see all users in a table and choose what users to delete as well as see user information
  \hline
-  & & \\
+Feature: search bar - All users can use the search bar at the top of the page to filter out requests and records on the database
  \hline
-  & & \\
+Feature: Modify/delete requests - Allow students to modify and delete any requests
  \hline
-  & & \\
+Feature: Pending requests - All users can see their pending requests and admins can see all pending requersts. Tutors can accept or reject pending requests
  \hline
-  & & \\
+ Feature: Tutors are able to view and modify the subjects they are able to teach as well as their proficiency in them. The table shows their ID, name, subject, proficiency, and an action coloumn, which allows the tutor to delete their subject or update their proficiency level. @janedoe is an example of a tutor who can access this feature by clicking on the 'View All Subjects' on the dashboard. 
+ \hline
+ Feature: All types of users are able to view the days which were requested on both the pending approvals and matched requests boxes on the dashboard.
  \hline
   & & \\
  \hline

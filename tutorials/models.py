@@ -1,8 +1,8 @@
+# models.py
 from django.core.validators import RegexValidator
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from libgravatar import Gravatar
-
 
 
 class User(AbstractUser):
@@ -34,12 +34,12 @@ class User(AbstractUser):
     def is_admin(self) -> bool:
         """Check if user has admin type."""
         return self.user_type == 'admin'
-    
+
     @property
     def is_tutor(self) -> bool:
         """Check if user has tutor type."""
-        return self.user_type == 'tutor' 
-    
+        return self.user_type == 'tutor'
+
     @property
     def is_student(self) -> bool:
         """Check if user has student type."""
@@ -64,9 +64,10 @@ class User(AbstractUser):
 
     def mini_gravatar(self):
         """Return a URL to a miniature version of the user's gravatar."""
-        
+
         return self.gravatar(size=60)
-    
+
+
 class Subject(models.Model):
     """Model used to represent subjects which can be taught"""
 
@@ -99,14 +100,17 @@ class RequestSession(models.Model):
     date_requested = models.DateField(null=False, blank=False)  # Change from DateTimeField to DateField
 
     class Meta:
-        unique_together = ('student', 'subject')
+        constraints = [
+            models.UniqueConstraint(fields=['student', 'subject'], name='unique_request_per_student_subject')
+        ]
 
     def __str__(self):
         return f"{self.student.username} - {self.subject.name}"
-    
+
     def get_frequency_display(self):
         """Return human-readable frequency."""
         return dict(self.FREQUENCY_CHOICES).get(float(self.frequency), "Unknown")
+
 
 class RequestSessionDay(models.Model):
     """Model to represent days associated with a RequestSession."""
@@ -150,13 +154,11 @@ class Invoice(models.Model):
     match = models.ForeignKey(Match, on_delete=models.CASCADE, unique=True)
     payment_status = models.CharField(max_length=10, choices=USER_PAYMENT_CHOICES, default='unpaid')
     bank_transfer = models.CharField(max_length=20, blank=True, null=True)
-    class Meta:
-        abstract = False
 
 
 class TutorSubject(models.Model):
     """Model for tutors and their associated subjects"""
-    
+
     PROFICIENCY_TYPES = (
         ('Beginner', 'Beginner'),
         ('Intermediate', 'Intermediate'),
@@ -169,15 +171,17 @@ class TutorSubject(models.Model):
     price  = models.DecimalField(max_digits=4, decimal_places=2, default=10.00)
 
     class Meta:
-        unique_together = ('tutor', 'subject')
+        constraints = [
+            models.UniqueConstraint(fields=['tutor', 'subject'], name='unique_tutor_subject')
+        ]
 
     def __str__(self):
         return f"{self.tutor.username} - {self.subject.name}"
-    
+
 
 class Frequency:
     """Utility class to handle frequency conversions."""
-    
+
     FREQUENCY_CHOICES = {
         0.5: 'Fortnightly',
         1.0: 'Weekly',
@@ -193,6 +197,8 @@ class Frequency:
     @classmethod
     def to_numeric(cls, label):
         """Convert string representation of frequency to its numeric value."""
+        if not isinstance(label, str):  # Ensure label is a string
+            return None
         for numeric, string in cls.FREQUENCY_CHOICES.items():
             if string.lower() == label.lower():
                 return numeric

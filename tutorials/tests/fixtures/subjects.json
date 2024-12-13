@@ -3,28 +3,28 @@
       "model": "tutorials.subject",
       "pk": 1,
       "fields": {
-        "name": "Mathematics"
+        "name": "linear algebra"
       }
     },
     {
       "model": "tutorials.subject",
       "pk": 2,
       "fields": {
-        "name": "Science"
+        "name": "Rust"
       }
     },
     {
       "model": "tutorials.subject",
       "pk": 3,
       "fields": {
-        "name": "History"
+        "name": "C++"
       }
     },
     {
       "model": "tutorials.subject",
       "pk": 4,
       "fields": {
-        "name": "English"
+        "name": "SQL"
       }
     },
     {
@@ -38,28 +38,28 @@
       "model": "tutorials.subject",
       "pk": 6,
       "fields": {
-        "name": "Art"
+        "name": "C"
       }
     },
     {
       "model": "tutorials.subject",
       "pk": 7,
       "fields": {
-        "name": "Music"
+        "name": "Python"
       }
     },
     {
       "model": "tutorials.subject",
       "pk": 8,
       "fields": {
-        "name": "Physical Education"
+        "name": "Java"
       }
     },
     {
       "model": "tutorials.subject",
       "pk": 9,
       "fields": {
-        "name": "German"
+        "name": "Data Science"
       }
     }
 ]
