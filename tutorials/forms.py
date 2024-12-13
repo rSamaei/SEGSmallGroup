@@ -270,24 +270,6 @@ class SelectTutorForInvoice(forms.Form):
         ).values_list('tutor_id', flat=True)
         self.fields['tutor'].queryset = User.objects.filter(id__in=matched_user_ids).distinct()
 
-class SelectStudentsForInvoice(forms.Form):
-    student = forms.ModelChoiceField(queryset=None, empty_label="Unselected", widget=forms.Select(attrs={'class': 'form-select mb-3'}))
-
-    def __init__(self, selfTutor: User, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # Get all matches where the tutor is the current tutor (selfTutor)
-        matches = Match.objects.filter(tutor=selfTutor)
-
-        # Get the list of student IDs from matched sessions
-        student_ids = matches.values_list('request_session__student__id', flat=True)
-
-        # Filter students who are part of the matches
-        self.fields['student'].queryset = User.objects.filter(
-            id__in=student_ids,
-            user_type='student'
-        ).distinct()
-
 class PayInvoice(forms.Form):
     """Form for submitting invoice payments with bank transfer details."""
     
