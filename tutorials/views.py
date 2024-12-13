@@ -591,7 +591,6 @@ def invoice(request):
             if 'pdf' in request.POST:
                 match = get_object_or_404(Match, id=request.POST.get('session'))
                 invoice = Invoice.objects.get(match=match)
-                invoice = Invoice.objects.get(match=match)
                 return handle_pdf_generation(request, match, invoice)
             else:
                 form = PayInvoice(request.POST)

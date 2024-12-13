@@ -19,7 +19,7 @@ class RequestSessionModelTestCase(TestCase):
         self.student.user_type = 'student'
         self.student.save()
         
-        self.subject = Subject.objects.get(name='Mathematics')
+        self.subject = Subject.objects.first()
         
         self.request_session = RequestSession.objects.create(
             student=self.student,

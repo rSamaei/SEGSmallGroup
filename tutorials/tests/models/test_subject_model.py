@@ -11,10 +11,10 @@ class SubjectModelTestCase(TestCase):  # Fixed class name
     ]
 
     def setUp(self):
-        self.subject = Subject.objects.get(name='Mathematics')
+        self.subject = Subject.objects.first()
 
     def test_subject_name_must_be_unique(self):
-        subject = Subject(name='Mathematics')  
+        subject = Subject(name='linear algebra')  
         with self.assertRaises(ValidationError):
             subject.full_clean()
     
@@ -23,7 +23,7 @@ class SubjectModelTestCase(TestCase):  # Fixed class name
         self.assertEqual(len(subjects), 9)
     
     def test_subject_str_method(self):
-        self.assertEqual(str(self.subject), 'Mathematics')
+        self.assertEqual(str(self.subject), 'linear algebra')
 
     def test_subject_name_cannot_be_blank(self):
         self.subject.name = ''
@@ -57,10 +57,10 @@ class SubjectModelTestCase(TestCase):  # Fixed class name
         self.assertEqual(Subject.objects.count(), initial_count - 1)
 
     def test_can_update_subject(self):
-        self.subject.name = 'Updated Mathematics'
+        self.subject.name = 'Updated linear'
         try:
             self.subject.full_clean()
             self.subject.save()
         except ValidationError:
             self.fail("Could not update subject")
-        self.assertEqual(Subject.objects.get(id=self.subject.id).name, 'Updated Mathematics')
+        self.assertEqual(Subject.objects.get(id=self.subject.id).name, 'Updated linear')

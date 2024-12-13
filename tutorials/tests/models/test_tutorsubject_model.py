@@ -18,7 +18,7 @@ class TutorSubjectModelTestCase(TestCase):
         self.tutor.user_type = 'tutor'
         self.tutor.save()
         
-        self.subject = Subject.objects.get(name='Mathematics')
+        self.subject = Subject.objects.first()
         
         self.tutor_subject = TutorSubject.objects.create(
             tutor=self.tutor,
