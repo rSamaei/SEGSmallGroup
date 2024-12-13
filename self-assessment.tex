@@ -62,25 +62,25 @@ Feature: Calendar & Any type of user - @johndoe, @janedoe, @charlie for admin, t
 \hline
 Feature: Match Requests & Admin users - @johndoe & After loggin in as the admin, you can see a card in the dashboard with the title 'Unmatched Requests', clicking on 'View all requests' will get you to the page for matching student requests with tutors who are able to teach it. (You are also able get here through the navbar) Upon reaching this page, you will see all requests, if a session was requested within two weeks of the term starting, it will be marked as late. You are able to quick match by selecting on the drop down menu, or for more details you can click on 'View Details', which will take you to the highlighted page. On the Requested Session Page you can also search for sessions by the username, subject or proficiency.\\
  \hline
-Feature: Admin can register new admins & Only admins '@johndoe' & After logging in, admins can register new admins and add them to the database\\
+Feature: Admin can register new admins & Only admins '@johndoe' & After logging in, admins can register new admins and add them to the database, you can get here by clicking on the profile in the top right where you go to log out, there is an additional option for this.\\
  \hline
-Feature: Students can 'pay' for session, admins can validate payment and tutors can view paid sessions & Students can 'pay', Admins can 'accept payment'. Tutors can see payments & When a student logs in, they can view all there sessions and choose to pay. This then marks the payment as 'waiting' which the admins can view and then accept. By accepting, it will now appear as paid to the tutors.
+Feature: Students can 'pay' for session, admins can validate payment and tutors can view paid sessions & Students can 'pay', Admins can 'accept payment'. Tutors can see payments & When a student logs in, they can view all there sessions and choose to pay, they must enter a transfer number, a sequence of numbers and letters will do. This then marks the payment as 'waiting' which the admins can view and then accept. By accepting, it will now appear as paid to the tutors.
 \hline
-Feature: Tutor subjects - Allow tutors to submit what subject they can teach as well as remove the subject and modify their proficiency.
+Feature: Tutor subjects & Tutors & Allow tutors to submit what subject they can teach as well as remove the subject and modify their proficiency.
  \hline
 Feature: Students can view there invoice as a pdf & Students & When a student logs in and goes to the invoice tab, pressing view pdf will generate a pdf with all neccessary details and allow the student to download it.
 \hline
-Feature: View all users - Admins can view/see all users in a table and choose what users to delete as well as see user information
+Feature: View all users & Admins & Admins can view/see all users in a table and choose what users to delete as well as see user information
  \hline
-Feature: search bar - All users can use the search bar at the top of the page to filter out requests and records on the database
+Feature: search bar & All users & All users can use the search bar at the top of the page to filter out requests and records on the database
  \hline
-Feature: Modify/delete requests - Allow students to modify and delete any requests
+Feature: Modify/delete requests & Students & Allow students to modify and delete any requests
  \hline
-Feature: Pending requests - All users can see their pending requests and admins can see all pending requersts. Tutors can accept or reject pending requests
+Feature: Pending requests & All users & All users can see their pending requests and admins can see all pending requersts. Tutors can accept or reject pending requests
  \hline
- Feature: Tutors are able to view and modify the subjects they are able to teach as well as their proficiency in them. The table shows their ID, name, subject, proficiency, and an action coloumn, which allows the tutor to delete their subject or update their proficiency level. @janedoe is an example of a tutor who can access this feature by clicking on the 'View All Subjects' on the dashboard. 
+ Feature: Tutors can access what they can teach & Tutors & Tutors are able to view and modify the subjects they are able to teach as well as their proficiency in them. The table shows their ID, name, subject, proficiency, and an action coloumn, which allows the tutor to delete their subject or update their proficiency level. @janedoe is an example of a tutor who can access this feature by clicking on the 'View All Subjects' on the dashboard. 
  \hline
- Feature: All types of users are able to view the days which were requested on both the pending approvals and matched requests boxes on the dashboard.
+ Feature: Tabular version of matched/pending requests & All users & All types of users are able to view the days which were requested on both the pending approvals and matched requests boxes on the dashboard.
  \hline
   & & \\
  \hline
